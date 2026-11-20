@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+uploads/ebooks/*
+!uploads/ebooks/.gitkeep
+uploads/covers/*
+!uploads/covers/.gitkeep
+.DS_Store
+*.log
