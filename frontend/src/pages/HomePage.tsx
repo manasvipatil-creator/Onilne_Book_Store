@@ -8,19 +8,27 @@ import {
   DownloadCloud,
   CheckCircle,
   BookOpen,
-  Star,
   Mail,
-  Zap,
-  Award,
   Headphones,
   Gift,
+  RefreshCw,
+  Loader2,
   ChevronLeft,
   ChevronRight,
+  Star,
+  Flame,
+  Award,
+  BookMarked,
+  Layers,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { Book, Category } from '../types';
 import { BookCard } from '../components/BookCard';
-import { handleHeroImageError } from '../utils/imageFallbacks';
+import { CategoryCard } from '../components/CategoryCard';
+import { BookCardSkeleton, Button } from '../components/common';
+import { SectionHeader } from '../components/common/SectionHeader';
+import { Reveal } from '../components/common/Reveal';
 
 export const HomePage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -28,6 +36,8 @@ export const HomePage: React.FC = () => {
   const [bestSellers, setBestSellers] = useState<Book[]>([]);
   const [newArrivals, setNewArrivals] = useState<Book[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [hasError, setHasError] = useState<boolean>(false);
+  const [wakeUpMessage, setWakeUpMessage] = useState<boolean>(false);
 
   // Hero Carousel State
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -37,70 +47,114 @@ export const HomePage: React.FC = () => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
 
-  // Professional Full-Width Panoramic Slides (Without Discount/Promos)
+  // Curated High-Definition Hero Slides
   const heroSlides = [
     {
       id: 1,
       badge: 'Premier Book Collection',
       titlePrefix: 'Discover Your Next',
       titleHighlight: 'Favorite Book',
-      subtitle: 'Explore. Read. Be Inspired.',
-      buttonText: 'Shop Now',
+      subtitle:
+        'Explore thousands of timeless classics, profound ideas, and modern bestsellers. Available in premium physical paperbacks and instant digital eBooks.',
+      buttonText: 'Explore Collection',
       buttonLink: '/books',
-      imageUrl: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&q=85&w=1600',
-      alt: 'Favorite Books, Coffee and Lifestyle',
+      secondaryText: 'Instant eBooks',
+      secondaryLink: '/books?type=ebook',
+      imageUrl:
+        'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&q=85&w=1400',
+      alt: 'Favorite Books and Reading Collection',
+      rating: '4.9/5 Rating from 10,000+ Readers',
+      floatingCard: {
+        title: 'Bestseller of the Week',
+        subtitle: 'Atomic Habits & Psychology of Money',
+        icon: Flame,
+      },
     },
     {
       id: 2,
-      badge: 'Digital & Audio Library',
+      badge: 'Instant Digital Access',
       titlePrefix: 'Read Anywhere, Anytime',
       titleHighlight: 'Instant eBooks',
-      subtitle: 'Download PDF & EPUB in seconds directly to your phone or tablet.',
+      subtitle:
+        'Download verified PDF and EPUB editions in seconds directly to your phone, tablet, or eReader. Zero delivery wait time, permanent private library access.',
       buttonText: 'Browse eBooks',
       buttonLink: '/books?type=ebook',
-      imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=85&w=1600',
+      secondaryText: 'All Books',
+      secondaryLink: '/books',
+      imageUrl:
+        'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=85&w=1400',
       alt: 'Instant eBooks and Digital Reading',
+      rating: 'Immediate Download & Lifetime Access',
+      floatingCard: {
+        title: 'Digital Edition (PDF/EPUB)',
+        subtitle: 'Read across mobile, iPad & Kindle',
+        icon: DownloadCloud,
+      },
+    },
+    {
+      id: 3,
+      badge: 'Editor’s Curated Choice',
+      titlePrefix: 'Expand Your Knowledge',
+      titleHighlight: 'Literary Gems',
+      subtitle:
+        'Hand-picked selections spanning software architecture, personal finance, psychology, and world history for curious minds.',
+      buttonText: 'View Editor Picks',
+      buttonLink: '/books?featured=true',
+      secondaryText: 'New Arrivals',
+      secondaryLink: '/books?sort=latest',
+      imageUrl:
+        'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=85&w=1400',
+      alt: 'Curated Bookshelf and Reading Space',
+      rating: 'Hand-picked by Literary Editors',
+      floatingCard: {
+        title: 'Special Reading Festival',
+        subtitle: 'Verified genuine publisher prints',
+        icon: Award,
+      },
     },
   ];
 
-  // Auto-scroll every 5 seconds, pauses when hovered
+  // Auto-advance hero carousel every 5.5s
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000);
+    }, 5500);
     return () => clearInterval(interval);
   }, [isPaused, heroSlides.length]);
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
-  };
+  const loadHomeData = async () => {
+    setLoading(true);
+    setHasError(false);
+    setWakeUpMessage(false);
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    const wakeUpTimer = setTimeout(() => {
+      setWakeUpMessage(true);
+    }, 3000);
+
+    try {
+      const [catsRes, featRes, bestRes, newRes] = await Promise.all([
+        api.get('/categories'),
+        api.get('/books/featured'),
+        api.get('/books/best-sellers'),
+        api.get('/books/new-arrivals'),
+      ]);
+
+      if (catsRes.data?.success) setCategories(catsRes.data.data.categories || []);
+      if (featRes.data?.success) setFeaturedBooks(featRes.data.data.books || []);
+      if (bestRes.data?.success) setBestSellers(bestRes.data.data.books || []);
+      if (newRes.data?.success) setNewArrivals(newRes.data.data.books || []);
+    } catch (err) {
+      console.error('Error loading homepage data:', err);
+      setHasError(true);
+    } finally {
+      clearTimeout(wakeUpTimer);
+      setLoading(false);
+      setWakeUpMessage(false);
+    }
   };
 
   useEffect(() => {
-    const loadHomeData = async () => {
-      try {
-        const [catsRes, featRes, bestRes, newRes] = await Promise.all([
-          api.get('/categories'),
-          api.get('/books/featured'),
-          api.get('/books/best-sellers'),
-          api.get('/books/new-arrivals'),
-        ]);
-
-        if (catsRes.data.success) setCategories(catsRes.data.data.categories);
-        if (featRes.data.success) setFeaturedBooks(featRes.data.data.books);
-        if (bestRes.data.success) setBestSellers(bestRes.data.data.books);
-        if (newRes.data.success) setNewArrivals(newRes.data.data.books);
-      } catch (err) {
-        console.error('Error loading homepage data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadHomeData();
   }, []);
 
@@ -112,172 +166,290 @@ export const HomePage: React.FC = () => {
     }
   };
 
+  const currentHero = heroSlides[currentSlide];
+  const FloatingIcon = currentHero.floatingCard.icon;
+
   return (
-    <div className="space-y-12 pb-16 bg-background">
-      {/* 1. Full-Width Panoramic Hero Carousel Banner (Reference Design) */}
+    <div className="space-y-16 sm:space-y-24 pb-24 bg-background overflow-hidden">
+      {/* 1. Animated Hero Showcase Section */}
       <section
-        className="relative w-full bg-[#FAF7F2] border-b border-gray-200 overflow-hidden min-h-[420px] sm:min-h-[460px] lg:min-h-[500px] flex items-center"
+        className="relative w-full bg-gradient-to-b from-[#FAF7F2] via-[#FAF7F2]/60 to-background border-b border-borderMuted py-12 sm:py-16 lg:py-24"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        {/* Full-bleed background image with seamless fade mask */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute right-0 top-0 bottom-0 w-full lg:w-3/5 h-full">
-            <img
-              key={heroSlides[currentSlide].id}
-              src={heroSlides[currentSlide].imageUrl}
-              alt={heroSlides[currentSlide].alt}
-              className="w-full h-full object-cover object-center lg:object-right transition-opacity duration-1000 ease-in-out"
-              onError={handleHeroImageError}
-            />
-          </div>
-          {/* Seamless gradient fade from left to right */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#FAF7F2] via-[#FAF7F2]/90 lg:via-[#FAF7F2]/60 to-transparent"></div>
-          {/* Bottom subtle gradient for contrast */}
-          <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-[#FAF7F2] to-transparent"></div>
-        </div>
+        {/* Subtle decorative background blur glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-golden/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-10 right-10 w-80 h-80 bg-navy/5 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Hero Content (Floating over the left of the panoramic banner) */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 relative z-10 w-full">
-          <div className="max-w-xl lg:max-w-2xl space-y-4 sm:space-y-6">
-            {/* 3 Golden Sparks / Ray Marks (Reference Design) */}
-            <div className="flex items-center space-x-2 text-golden">
-              <svg
-                className="w-8 h-8 text-golden flex-shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              >
-                <line x1="2" y1="12" x2="6" y2="12" />
-                <line x1="4.5" y1="4.5" x2="8" y2="8" />
-                <line x1="12" y1="2" x2="12" y2="6" />
-              </svg>
-              <span className="text-xs font-bold uppercase tracking-wider text-golden">
-                {heroSlides[currentSlide].badge}
-              </span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            {/* Left Column: Text & CTAs (7 cols) */}
+            <div className="lg:col-span-7 space-y-6 max-w-xl">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`hero-text-${currentHero.id}`}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="space-y-5"
+                >
+                  {/* Badge */}
+                  <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-golden/10 border border-golden/25 text-golden font-bold shadow-xs">
+                    <Sparkles className="w-4 h-4 text-golden animate-pulse" />
+                    <span className="text-[11px] uppercase tracking-wider">
+                      {currentHero.badge}
+                    </span>
+                  </div>
+
+                  {/* Main Headline */}
+                  <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-black text-navy leading-[1.12] tracking-tight">
+                    {currentHero.titlePrefix} <br />
+                    <span className="text-golden underline decoration-golden/30 underline-offset-8">
+                      {currentHero.titleHighlight}
+                    </span>
+                  </h1>
+
+                  {/* Subtitle */}
+                  <p className="text-textSecondary text-base sm:text-lg font-normal leading-relaxed">
+                    {currentHero.subtitle}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3.5 pt-2">
+                <Link
+                  to={currentHero.buttonLink}
+                  className="inline-flex items-center space-x-2 px-7 py-3.5 rounded-full bg-navy text-white text-sm font-bold hover:bg-navy-light transition-all shadow-soft hover:shadow-elevated active:scale-95 group"
+                >
+                  <span>{currentHero.buttonText}</span>
+                  <ArrowRight className="w-4 h-4 text-golden transition-transform group-hover:translate-x-1" />
+                </Link>
+
+                <Link
+                  to={currentHero.secondaryLink}
+                  className="inline-flex items-center space-x-2 px-6 py-3.5 rounded-full bg-surface border border-borderMuted text-navy text-sm font-bold hover:border-navy transition-all shadow-xs active:scale-95"
+                >
+                  <DownloadCloud className="w-4 h-4 text-golden" />
+                  <span>{currentHero.secondaryText}</span>
+                </Link>
+              </div>
+
+              {/* Trust Rating Strip & Carousel Controls */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-6 border-t border-borderMuted/80 gap-4">
+                <div className="flex items-center space-x-2 text-xs text-textSecondary font-medium">
+                  <div className="flex text-golden">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className="w-3.5 h-3.5 fill-golden" />
+                    ))}
+                  </div>
+                  <span>{currentHero.rating}</span>
+                </div>
+
+                {/* Animated Carousel Dots and Arrow Buttons */}
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    {heroSlides.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setCurrentSlide(idx)}
+                        aria-label={`Go to slide ${idx + 1}`}
+                        className={`transition-all duration-300 rounded-full ${
+                          currentSlide === idx
+                            ? 'w-7 h-2 bg-navy shadow-xs'
+                            : 'w-2 h-2 bg-slate-300 hover:bg-navy/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentSlide(
+                          (prev) => (prev - 1 + heroSlides.length) % heroSlides.length
+                        )
+                      }
+                      className="p-1.5 rounded-full hover:bg-navy/10 text-navy transition-colors"
+                      aria-label="Previous Slide"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
+                      }
+                      className="p-1.5 rounded-full hover:bg-navy/10 text-navy transition-colors"
+                      aria-label="Next Slide"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-navy leading-[1.15] tracking-tight">
-              {heroSlides[currentSlide].titlePrefix} <br />
-              <span className="text-navy font-extrabold">{heroSlides[currentSlide].titleHighlight}</span>
-            </h1>
+            {/* Right Column: Hero Visual with Animated Floating Glassmorphism Pill (5 cols) */}
+            <div className="lg:col-span-5 relative w-full aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/5] max-h-[500px]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`hero-img-${currentHero.id}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="relative w-full h-full rounded-3xl overflow-hidden shadow-elevated border border-borderMuted bg-slate-100"
+                >
+                  <img
+                    src={currentHero.imageUrl}
+                    alt={currentHero.alt}
+                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/40 via-transparent to-transparent pointer-events-none" />
+                </motion.div>
+              </AnimatePresence>
 
-            {/* Subtitle */}
-            <p className="text-gray-600 text-base sm:text-lg font-medium leading-relaxed max-w-lg">
-              {heroSlides[currentSlide].subtitle}
-            </p>
-
-            {/* Action CTA Button */}
-            <div className="pt-2">
-              <Link
-                to={heroSlides[currentSlide].buttonLink}
-                className="inline-flex items-center space-x-2 px-8 py-3.5 rounded-full bg-navy text-white font-bold hover:bg-navy-light hover:text-golden transition-all shadow-md group/btn"
+              {/* Floating Glassmorphism Feature Card */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="absolute -bottom-5 sm:-bottom-6 left-4 right-4 sm:left-6 sm:right-6 bg-surface/95 backdrop-blur-md p-4 rounded-2xl shadow-elevated border border-borderMuted flex items-center space-x-3.5 z-20"
               >
-                <span>{heroSlides[currentSlide].buttonText}</span>
-                <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-              </Link>
+                <div className="w-10 h-10 rounded-xl bg-golden/20 text-golden flex items-center justify-center flex-shrink-0">
+                  <FloatingIcon className="w-5 h-5 text-golden" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-serif font-bold text-navy text-xs sm:text-sm truncate">
+                    {currentHero.floatingCard.title}
+                  </p>
+                  <p className="text-[11px] text-textSecondary truncate">
+                    {currentHero.floatingCard.subtitle}
+                  </p>
+                </div>
+              </motion.div>
             </div>
           </div>
         </div>
-
-        {/* Carousel Interactive Dots (Reference Design: ● ○ ○ centered at bottom) */}
-        <div className="absolute bottom-5 inset-x-0 flex justify-center items-center space-x-2.5 z-20">
-          {heroSlides.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentSlide(idx)}
-              aria-label={`Go to slide ${idx + 1}`}
-              className={`transition-all duration-300 rounded-full ${currentSlide === idx
-                ? 'w-7 h-2.5 bg-navy shadow-sm'
-                : 'w-2.5 h-2.5 bg-gray-400/60 hover:bg-navy/60'
-                }`}
-            />
-          ))}
-        </div>
-
-        {/* Previous & Next Slide Arrow Buttons */}
-        <button
-          onClick={prevSlide}
-          aria-label="Previous Slide"
-          className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-navy shadow-md items-center justify-center border border-gray-200 hover:text-golden transition-all z-20"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <button
-          onClick={nextSlide}
-          aria-label="Next Slide"
-          className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-navy shadow-md items-center justify-center border border-gray-200 hover:text-golden transition-all z-20"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
       </section>
 
-      {/* 2. Trust Badges Strip (Reference Design: Clean 4 Columns) */}
-      <section className="bg-surface border-y border-gray-200/80 shadow-xs">
+      {/* 2. Trust Badges Strip (Home Page ONLY) */}
+      <section className="bg-surface border-y border-borderMuted shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 py-3 sm:py-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-borderMuted py-5">
             <div className="flex items-center justify-center space-x-3 p-3">
-              <Truck className="w-6 h-6 text-navy flex-shrink-0" />
+              <div className="w-10 h-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center flex-shrink-0">
+                <Truck className="w-5 h-5 text-golden" />
+              </div>
               <div>
-                <h4 className="text-xs sm:text-sm font-bold text-navy">Fast & Reliable</h4>
-                <p className="text-[11px] text-gray-500">Delivery</p>
+                <h4 className="text-xs sm:text-sm font-bold text-navy">Fast Delivery</h4>
+                <p className="text-[11px] text-textSecondary">Reliable doorstep dispatch</p>
               </div>
             </div>
 
             <div className="flex items-center justify-center space-x-3 p-3">
-              <ShieldCheck className="w-6 h-6 text-navy flex-shrink-0" />
+              <div className="w-10 h-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="w-5 h-5 text-golden" />
+              </div>
               <div>
                 <h4 className="text-xs sm:text-sm font-bold text-navy">Secure Payments</h4>
-                <p className="text-[11px] text-gray-500">100% Protected</p>
+                <p className="text-[11px] text-textSecondary">100% Protected Razorpay</p>
               </div>
             </div>
 
             <div className="flex items-center justify-center space-x-3 p-3">
-              <Headphones className="w-6 h-6 text-navy flex-shrink-0" />
+              <div className="w-10 h-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center flex-shrink-0">
+                <Headphones className="w-5 h-5 text-golden" />
+              </div>
               <div>
-                <h4 className="text-xs sm:text-sm font-bold text-navy">24/7 Customer Support</h4>
-                <p className="text-[11px] text-gray-500">Dedicated Help</p>
+                <h4 className="text-xs sm:text-sm font-bold text-navy">24/7 Support</h4>
+                <p className="text-[11px] text-textSecondary">Dedicated reader care</p>
               </div>
             </div>
 
             <div className="flex items-center justify-center space-x-3 p-3">
-              <Gift className="w-6 h-6 text-navy flex-shrink-0" />
+              <div className="w-10 h-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center flex-shrink-0">
+                <Gift className="w-5 h-5 text-golden" />
+              </div>
               <div>
-                <h4 className="text-xs sm:text-sm font-bold text-navy">Best Offers & Discounts</h4>
-                <p className="text-[11px] text-gray-500">Guaranteed Deals</p>
+                <h4 className="text-xs sm:text-sm font-bold text-navy">Best Editions</h4>
+                <p className="text-[11px] text-textSecondary">Guaranteed genuine copies</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. Best Sellers Section (Matching Reference Image: | Best Sellers) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-1.5 h-6 bg-navy rounded-full"></div>
-            <h2 className="text-2xl font-bold text-navy">Best Sellers</h2>
+      {/* Backend Wake-up / Free Tier Message */}
+      {wakeUpMessage && loading && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center space-x-3 shadow-xs">
+            <Loader2 className="w-5 h-5 animate-spin text-golden flex-shrink-0" />
+            <p className="text-xs sm:text-sm font-medium">
+              Waking up the server, loading books… Please hold on a moment.
+            </p>
           </div>
-          <Link
-            to="/books?bestseller=true"
-            className="text-xs font-semibold text-gray-500 hover:text-navy flex items-center space-x-1 group"
-          >
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </Link>
         </div>
+      )}
+
+      {/* Error state with retry */}
+      {hasError && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="p-8 rounded-3xl bg-amber-50 border border-amber-200 text-center space-y-4">
+            <p className="text-sm font-bold text-amber-900">
+              Backend is waking up or temporarily unavailable. Please retry.
+            </p>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<RefreshCw className="w-3.5 h-3.5" />}
+              onClick={loadHomeData}
+            >
+              Retry Loading Books
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {/* 3. Category Quick Filter Chips */}
+      {categories.length > 0 && (
+        <Reveal>
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center space-x-3 overflow-x-auto pb-2 scrollbar-none">
+              <Link
+                to="/books"
+                className="px-4 py-2.5 rounded-2xl bg-navy text-white text-xs font-bold hover:bg-navy-light transition-colors whitespace-nowrap shadow-soft flex-shrink-0"
+              >
+                All Genres
+              </Link>
+              {categories.map((c) => (
+                <CategoryCard key={c._id} category={c} variant="chip" />
+              ))}
+            </div>
+          </section>
+        </Reveal>
+      )}
+
+      {/* 4. Best Sellers Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          title="Best Sellers"
+          subtitle="Top titles readers across India are currently enjoying"
+          viewAllLink="/books?bestseller=true"
+        />
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="animate-pulse bg-gray-200 aspect-[3/4] rounded-xl"></div>
+              <BookCardSkeleton key={i} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
             {bestSellers.slice(0, 4).map((book) => (
               <BookCard key={book._id} book={book} />
             ))}
@@ -285,33 +457,22 @@ export const HomePage: React.FC = () => {
         )}
       </section>
 
-      {/* 4. Featured Titles Section */}
+      {/* 5. Featured Titles Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-1.5 h-6 bg-golden rounded-full"></div>
-            <div>
-              <h2 className="text-2xl font-bold text-navy">Featured Titles</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Hand-picked selections curated by our editors</p>
-            </div>
-          </div>
-          <Link
-            to="/books?featured=true"
-            className="text-xs font-semibold text-gray-500 hover:text-navy flex items-center space-x-1 group"
-          >
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
+        <SectionHeader
+          title="Featured Titles"
+          subtitle="Hand-picked selections curated by our editors"
+          viewAllLink="/books?featured=true"
+        />
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="animate-pulse bg-gray-200 aspect-[3/4] rounded-xl"></div>
+              <BookCardSkeleton key={i} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
             {featuredBooks.slice(0, 4).map((book) => (
               <BookCard key={book._id} book={book} />
             ))}
@@ -319,207 +480,118 @@ export const HomePage: React.FC = () => {
         )}
       </section>
 
-      {/* 5. Popular Categories Showcase */}
+      {/* 6. Popular Categories Showcase */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-1.5 h-6 bg-navy rounded-full"></div>
-            <h2 className="text-2xl font-bold text-navy">Popular Categories</h2>
-          </div>
-          <Link to="/books" className="text-xs font-semibold text-gray-500 hover:text-navy flex items-center space-x-1 group">
-            <span>View All Categories</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
+        <SectionHeader
+          title="Popular Categories"
+          subtitle="Browse literary genres, educational guides, and modern knowledge"
+          viewAllLink="/books"
+          viewAllText="View All Genres"
+        />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          {categories.map((cat) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          {categories.slice(0, 8).map((cat) => (
+            <CategoryCard key={cat._id} category={cat} variant="card" />
+          ))}
+        </div>
+      </section>
+
+      {/* 7. Discover & Learn Showcase Banner */}
+      <Reveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl bg-gradient-to-br from-navy via-navy to-navy-light text-white p-8 sm:p-12 shadow-elevated border border-navy-light/40 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-golden/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700 pointer-events-none" />
+
+            <div className="space-y-3 z-10 max-w-xl">
+              <span className="inline-block px-3.5 py-1 bg-golden/20 border border-golden/30 text-golden text-xs font-bold rounded-full uppercase tracking-wider">
+                Curated Collections
+              </span>
+              <h3 className="font-serif text-2xl sm:text-4xl font-bold text-white tracking-tight">
+                Expand Your Mind with Great Books
+              </h3>
+              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                Explore thousands of verified titles across technology, self-help, business, and philosophy. Available in premium paperbacks and instant digital eBooks.
+              </p>
+            </div>
+
             <Link
-              key={cat._id}
-              to={`/books?category=${cat.slug}`}
-              className="group p-5 bg-surface rounded-2xl border border-gray-200/80 hover:border-golden hover:shadow-md transition-all text-center flex flex-col items-center justify-center space-y-3 transform hover:-translate-y-0.5"
+              to="/books"
+              className="whitespace-nowrap px-8 py-3.5 rounded-full bg-golden text-navy font-bold hover:bg-golden-light transition-all shadow-soft active:scale-95 z-10"
             >
-              <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-navy group-hover:bg-navy group-hover:text-golden transition-colors shadow-inner">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <div>
-                <h4 className="font-bold text-navy text-xs sm:text-sm group-hover:text-golden transition-colors">
-                  {cat.name}
-                </h4>
-                <p className="text-[10px] text-gray-400 mt-0.5">Explore Books</p>
-              </div>
+              Explore Library
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      </Reveal>
 
-      {/* 6. Discover & Learn Showcase Banner */}
+      {/* 8. New Arrivals Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-r from-navy via-navy to-navy-light text-white p-8 sm:p-12 shadow-xl border border-navy-light flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-[radial-gradient(#E6A23C_1px,transparent_1px)] [background-size:16px_16px] opacity-10 hidden md:block"></div>
+        <SectionHeader
+          title="New Arrivals"
+          subtitle="Fresh publications just added to our shelves"
+          viewAllLink="/books?sort=latest"
+        />
 
-          <div className="space-y-3 z-10">
-            <span className="px-3.5 py-1 bg-golden text-navy text-xs font-black rounded-full uppercase tracking-wider shadow-sm">
-              Discover & Learn
-            </span>
-            <h3 className="text-2xl sm:text-4xl font-extrabold text-white">
-              Expand Your Mind with Curated Books
-            </h3>
-            <p className="text-gray-300 text-sm sm:text-base max-w-xl">
-              Explore thousands of verified titles across technology, self-help, fiction, and philosophy. Available in premium paperbacks and instant digital eBooks.
-            </p>
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <BookCardSkeleton key={i} />
+            ))}
           </div>
-
-          <Link
-            to="/books"
-            className="whitespace-nowrap px-8 py-4 rounded-xl bg-golden text-navy font-bold hover:bg-golden-light transition-all shadow-lg transform hover:-translate-y-0.5 z-10"
-          >
-            Explore Library
-          </Link>
-        </div>
-      </section>
-
-      {/* 7. New Arrivals Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-1.5 h-6 bg-navy rounded-full"></div>
-            <div>
-              <h2 className="text-2xl font-bold text-navy">New Arrivals</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Fresh publications just added to our shelves</p>
-            </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+            {newArrivals.slice(0, 4).map((book) => (
+              <BookCard key={book._id} book={book} />
+            ))}
           </div>
-          <Link to="/books?sort=latest" className="text-xs font-semibold text-gray-500 hover:text-navy flex items-center space-x-1 group">
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {newArrivals.slice(0, 4).map((book) => (
-            <BookCard key={book._id} book={book} />
-          ))}
-        </div>
-      </section>
-
-      {/* 8. Reader Testimonials */}
-      <section className="bg-gray-50 py-14 border-y border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-bold uppercase tracking-wider text-golden">Real Reader Feedback</span>
-            <h2 className="text-3xl font-black text-navy mt-1">What Our Readers Are Saying</h2>
-            <p className="text-gray-500 text-xs sm:text-sm mt-2">
-              Over 15,000+ satisfied readers trust Online Book Store for their reading and learning journey.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-surface p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <div className="flex text-golden">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} className="w-4 h-4 fill-golden" />
-                ))}
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed italic">
-                "The instant eBook download experience is seamless. Ordered 'Clean Code' and had the PDF on my tablet within 30 seconds of paying via UPI. Excellent service!"
-              </p>
-              <div className="flex items-center space-x-3 pt-2 border-t border-gray-100">
-                <div className="w-9 h-9 rounded-full bg-navy text-golden font-bold text-xs flex items-center justify-center">
-                  AK
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-navy">Ananya Kulkarni</h4>
-                  <p className="text-[10px] text-gray-400">Software Engineer, Bengaluru</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-surface p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <div className="flex text-golden">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} className="w-4 h-4 fill-golden" />
-                ))}
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed italic">
-                "Packaging of physical books is top-tier. Received 'The Psychology of Money' in pristine condition with tracked courier delivery in just 2 days. 10/10 recommend."
-              </p>
-              <div className="flex items-center space-x-3 pt-2 border-t border-gray-100">
-                <div className="w-9 h-9 rounded-full bg-navy text-golden font-bold text-xs flex items-center justify-center">
-                  RS
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-navy">Rohan Sharma</h4>
-                  <p className="text-[10px] text-gray-400">Financial Analyst, Pune</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-surface p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <div className="flex text-golden">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} className="w-4 h-4 fill-golden" />
-                ))}
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed italic">
-                "Love the clean design and coupon discounts. Customer dashboard makes it super easy to track physical shipments and access my eBook library in one place."
-              </p>
-              <div className="flex items-center space-x-3 pt-2 border-t border-gray-100">
-                <div className="w-9 h-9 rounded-full bg-navy text-golden font-bold text-xs flex items-center justify-center">
-                  PM
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-navy">Pooja Mehta</h4>
-                  <p className="text-[10px] text-gray-400">Literature Student, Mumbai</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </section>
 
       {/* 9. Newsletter Subscription Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-surface rounded-3xl p-8 sm:p-12 border border-gray-200 shadow-md flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="space-y-2 max-w-xl">
-            <span className="text-xs font-bold uppercase tracking-wider text-golden flex items-center space-x-1">
-              <Mail className="w-3.5 h-3.5" />
-              <span>Stay Inspired</span>
-            </span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-navy">
-              Join Our Reading Community
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-500">
-              Get weekly curated reading lists, exclusive coupon codes, author interviews, and new release updates delivered directly to your inbox.
-            </p>
-          </div>
+      <Reveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-surface rounded-3xl p-8 sm:p-12 border border-borderMuted shadow-soft flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="space-y-2 max-w-xl">
+              <span className="text-xs font-bold uppercase tracking-widest text-golden flex items-center space-x-1.5">
+                <Mail className="w-3.5 h-3.5" />
+                <span>Stay Inspired</span>
+              </span>
+              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-navy">
+                Join Our Reading Community
+              </h3>
+              <p className="text-xs sm:text-sm text-textSecondary leading-relaxed">
+                Get weekly curated reading lists, author notes, and new releases delivered directly to your inbox.
+              </p>
+            </div>
 
-          <div className="w-full md:w-auto">
-            {newsletterSubscribed ? (
-              <div className="flex items-center space-x-2 text-green-700 font-bold bg-green-50 px-6 py-4 rounded-xl border border-green-200 text-sm">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <span>Thank you! Check your inbox for your 10% welcome discount.</span>
-              </div>
-            ) : (
-              <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-2 w-full max-w-md">
-                <input
-                  type="email"
-                  required
-                  placeholder="Enter your email address..."
-                  value={newsletterEmail}
-                  onChange={(e) => setNewsletterEmail(e.target.value)}
-                  className="px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-navy flex-1 bg-gray-50"
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-navy text-white font-bold rounded-xl hover:bg-navy-light hover:text-golden transition-all shadow-md text-sm whitespace-nowrap"
+            <div className="w-full md:w-auto">
+              {newsletterSubscribed ? (
+                <div className="flex items-center space-x-2 text-emerald-800 font-bold bg-emerald-50 px-6 py-4 rounded-2xl border border-emerald-200 text-sm">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <span>Thank you for joining our community!</span>
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleNewsletterSubmit}
+                  className="flex flex-col sm:flex-row gap-2 w-full max-w-md"
                 >
-                  Subscribe
-                </button>
-              </form>
-            )}
+                  <input
+                    type="email"
+                    required
+                    placeholder="Enter your email address"
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    className="px-4 py-3 rounded-2xl border border-borderMuted text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 bg-background flex-1"
+                  />
+                  <Button type="submit" variant="primary" size="md">
+                    Subscribe
+                  </Button>
+                </form>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Reveal>
     </div>
   );
 };

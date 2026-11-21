@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, User, Mail, Phone, Lock, AlertCircle } from 'lucide-react';
+import { BookOpen, User, Mail, Phone, Lock, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { Button, Input } from '../components/common';
 
 export const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +18,7 @@ export const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
+  const { success } = useToast();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,6 +28,11 @@ export const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -43,6 +51,7 @@ export const RegisterPage: React.FC = () => {
 
       if (res.data.success) {
         login(res.data.data.token, res.data.data.user);
+        success('Account created successfully! Welcome to BookStore.');
         navigate('/');
       }
     } catch (err: any) {
@@ -53,121 +62,149 @@ export const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-surface p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-navy rounded-xl flex items-center justify-center text-golden mx-auto">
-            <BookOpen className="w-6 h-6" />
+    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-4xl bg-surface rounded-3xl border border-borderMuted shadow-elevated overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+        {/* Left Side: Form (7 cols on lg) */}
+        <div className="lg:col-span-7 p-8 sm:p-12 space-y-6">
+          <div className="space-y-2">
+            <Link to="/" className="inline-flex items-center space-x-2 text-navy mb-4 group">
+              <div className="w-9 h-9 rounded-xl bg-navy text-golden flex items-center justify-center shadow-xs">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <span className="font-serif font-black text-xl text-navy">BookStore</span>
+            </Link>
+            <h1 className="font-serif text-3xl font-black text-navy tracking-tight">
+              Create Reader Account
+            </h1>
+            <p className="text-xs sm:text-sm text-textSecondary">
+              Join thousands of readers and start exploring books today.
+            </p>
           </div>
-          <h2 className="text-2xl font-black text-navy">Create Account</h2>
-          <p className="text-xs text-gray-500">Join our community of book lovers & readers</p>
-        </div>
 
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2 text-xs text-red-700">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-navy uppercase mb-1">Full Name</label>
-            <div className="relative">
-              <input
-                type="text"
-                name="name"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Rohit Sharma"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy focus:outline-none"
-              />
-              <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
+          {error && (
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center space-x-3 text-xs font-bold text-rose-700 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+              <span>{error}</span>
             </div>
-          </div>
+          )}
 
-          <div>
-            <label className="block text-xs font-bold text-navy uppercase mb-1">Email Address</label>
-            <div className="relative">
-              <input
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Full Name"
+              type="text"
+              name="name"
+              required
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="e.g. Rahul Patil"
+              leftIcon={<User className="w-4 h-4" />}
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Email Address"
                 type="email"
                 name="email"
                 required
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="name@example.com"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy focus:outline-none"
+                leftIcon={<Mail className="w-4 h-4" />}
               />
-              <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold text-navy uppercase mb-1">Mobile Number</label>
-            <div className="relative">
-              <input
+              <Input
+                label="Mobile Number"
                 type="tel"
                 name="mobile"
                 required
                 value={formData.mobile}
                 onChange={handleChange}
                 placeholder="9876543210"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy focus:outline-none"
+                leftIcon={<Phone className="w-4 h-4" />}
               />
-              <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold text-navy uppercase mb-1">Password</label>
-            <div className="relative">
-              <input
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Password"
                 type="password"
                 name="password"
                 required
-                minLength={6}
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Minimum 6 characters"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy focus:outline-none"
+                placeholder="Min 6 characters"
+                leftIcon={<Lock className="w-4 h-4" />}
               />
-              <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold text-navy uppercase mb-1">Confirm Password</label>
-            <div className="relative">
-              <input
+              <Input
+                label="Confirm Password"
                 type="password"
                 name="confirmPassword"
                 required
-                minLength={6}
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                placeholder="Repeat password"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy focus:outline-none"
+                placeholder="Re-type password"
+                leftIcon={<Lock className="w-4 h-4" />}
               />
-              <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
             </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={loading}
+              className="w-full mt-4"
+            >
+              Complete Registration
+            </Button>
+          </form>
+
+          <div className="pt-4 border-t border-borderMuted text-center">
+            <p className="text-xs text-textSecondary">
+              Already have an account?{' '}
+              <Link to="/login" className="font-bold text-navy hover:text-golden transition-colors underline">
+                Sign in here
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Right Side: Split-screen Showcase (5 cols on lg) */}
+        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-br from-navy via-navy to-navy-light p-10 text-white flex-col justify-between relative overflow-hidden">
+          <div className="space-y-6 relative z-10">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-golden/20 border border-golden/30 text-golden text-[11px] font-black uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Membership Benefits</span>
+            </div>
+
+            <h2 className="font-serif text-3xl font-bold leading-snug">
+              Unlock a world of inspiring knowledge.
+            </h2>
+
+            <p className="text-xs text-slate-300 leading-relaxed font-sans">
+              Create your reader profile in under a minute to track shipments, curate wishlists, and instantly download eBooks anytime.
+            </p>
+
+            <ul className="space-y-3 text-xs text-slate-200 pt-4">
+              <li className="flex items-center space-x-2.5">
+                <CheckCircle2 className="w-4 h-4 text-golden flex-shrink-0" />
+                <span>Immediate access to your digital eBook library</span>
+              </li>
+              <li className="flex items-center space-x-2.5">
+                <CheckCircle2 className="w-4 h-4 text-golden flex-shrink-0" />
+                <span>Save multiple delivery addresses for fast checkout</span>
+              </li>
+              <li className="flex items-center space-x-2.5">
+                <CheckCircle2 className="w-4 h-4 text-golden flex-shrink-0" />
+                <span>Curated recommendations tailored for you</span>
+              </li>
+            </ul>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-navy text-white font-bold rounded-lg hover:bg-navy-light transition-colors text-sm shadow-sm disabled:opacity-50"
-          >
-            {loading ? 'Creating Account...' : 'Register'}
-          </button>
-        </form>
-
-        <p className="text-center text-xs text-gray-600">
-          Already registered?{' '}
-          <Link to="/login" className="text-navy font-bold hover:text-golden">
-            Sign In Here
-          </Link>
-        </p>
+          <div className="pt-8 border-t border-navy-light/40 text-[11px] text-slate-400 relative z-10">
+            100% Encrypted & Privacy Protected
+          </div>
+        </div>
       </div>
     </div>
   );

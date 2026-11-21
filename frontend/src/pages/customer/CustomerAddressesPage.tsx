@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { MapPin, Plus, Trash2, Edit2, CheckCircle2 } from 'lucide-react';
+import { MapPin, Plus, Trash2, Edit2, CheckCircle2, Home, Building2 } from 'lucide-react';
 import api from '../../services/api';
 import { Address } from '../../types';
+import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
+import { Modal } from '../../components/common/Modal';
+import { Badge } from '../../components/common/Badge';
+import { Skeleton } from '../../components/common/Skeleton';
+import { useToast } from '../../context/ToastContext';
 
 export const CustomerAddressesPage: React.FC = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   const [form, setForm] = useState({
     fullName: '',
@@ -23,12 +31,15 @@ export const CustomerAddressesPage: React.FC = () => {
 
   const fetchAddresses = () => {
     setLoading(true);
-    api.get('/addresses').then((res) => {
-      if (res.data.success) {
-        setAddresses(res.data.data.addresses);
-      }
-      setLoading(false);
-    });
+    api
+      .get('/addresses')
+      .then((res) => {
+        if (res.data.success) {
+          setAddresses(res.data.data.addresses);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -69,16 +80,21 @@ export const CustomerAddressesPage: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       if (editId) {
         await api.patch(`/addresses/${editId}`, form);
+        toast.success('Address updated successfully');
       } else {
         await api.post('/addresses', form);
+        toast.success('New delivery address added');
       }
       setShowModal(false);
       fetchAddresses();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Error saving address');
+      toast.error(err.response?.data?.message || 'Error saving address');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -86,67 +102,90 @@ export const CustomerAddressesPage: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this address?')) return;
     try {
       await api.delete(`/addresses/${id}`);
+      toast.info('Address removed');
       fetchAddresses();
     } catch (err: any) {
-      alert('Failed to delete address');
+      toast.error('Failed to delete address');
     }
   };
 
   if (loading) {
-    return <div className="text-center py-10 text-gray-500">Loading addresses...</div>;
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48 rounded-xl" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Skeleton className="h-44 rounded-2xl" />
+          <Skeleton className="h-44 rounded-2xl" />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-navy">Delivery Addresses ({addresses.length})</h2>
-          <p className="text-xs text-gray-500">Manage saved shipping locations for physical book orders</p>
+          <h2 className="text-xl sm:text-2xl font-serif font-bold text-navy">
+            Saved Delivery Addresses
+          </h2>
+          <p className="text-xs text-textSecondary mt-0.5">
+            Manage your physical delivery locations for books & orders
+          </p>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="sm"
+          className="flex items-center gap-1.5 self-start sm:self-auto"
           onClick={handleOpenAdd}
-          className="px-4 py-2 bg-navy text-white text-xs font-bold rounded-lg hover:bg-navy-light flex items-center space-x-1.5 shadow-sm"
         >
           <Plus className="w-4 h-4 text-golden" />
-          <span>Add Address</span>
-        </button>
+          <span>Add New Address</span>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {addresses.map((addr) => (
           <div
             key={addr._id}
-            className="bg-surface rounded-2xl border border-gray-200 p-5 shadow-sm flex flex-col justify-between space-y-4 relative"
+            className={`bg-surface rounded-2xl border p-5 sm:p-6 shadow-soft flex flex-col justify-between space-y-4 relative transition-all ${
+              addr.isDefault
+                ? 'border-navy/30 ring-1 ring-navy/10'
+                : 'border-borderMuted'
+            }`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-navy text-base">{addr.fullName}</span>
+                <span className="font-serif font-bold text-navy text-base">
+                  {addr.fullName}
+                </span>
                 {addr.isDefault && (
-                  <span className="text-[10px] font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded flex items-center">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Default
-                  </span>
+                  <Badge variant="success" size="sm">
+                    Default Address
+                  </Badge>
                 )}
               </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
+              <p className="text-xs sm:text-sm text-textSecondary leading-relaxed">
                 {addr.house}, {addr.street}
               </p>
-              <p className="text-xs text-gray-600">
-                {addr.city}, {addr.state} - <strong>{addr.pincode}</strong>
+              <p className="text-xs sm:text-sm text-textSecondary font-medium">
+                {addr.city}, {addr.state} – <strong className="text-navy">{addr.pincode}</strong>
               </p>
-              <p className="text-xs text-gray-500 font-medium mt-2">Mobile: {addr.mobile}</p>
+              <p className="text-xs text-textSecondary font-semibold mt-3">
+                Phone: <span className="text-navy font-mono">{addr.mobile}</span>
+              </p>
             </div>
 
-            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-borderMuted">
               <button
                 onClick={() => handleOpenEdit(addr)}
-                className="text-xs text-navy hover:text-golden font-semibold flex items-center space-x-1"
+                className="text-xs text-navy hover:text-golden font-semibold flex items-center space-x-1 transition-colors"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 <span>Edit</span>
               </button>
               <button
                 onClick={() => handleDelete(addr._id)}
-                className="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center space-x-1"
+                className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center space-x-1 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Delete</span>
@@ -156,100 +195,101 @@ export const CustomerAddressesPage: React.FC = () => {
         ))}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-surface rounded-2xl p-6 max-w-md w-full space-y-4">
-            <h3 className="font-bold text-navy text-lg">{editId ? 'Edit Address' : 'Add New Address'}</h3>
-            <form onSubmit={handleSave} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  required
-                  value={form.fullName}
-                  onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                  className="px-3 py-2 border rounded-lg text-xs"
-                />
-                <input
-                  type="tel"
-                  placeholder="Mobile"
-                  required
-                  value={form.mobile}
-                  onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-                  className="px-3 py-2 border rounded-lg text-xs"
-                />
-              </div>
-              <input
-                type="text"
-                placeholder="House / Flat / Building No."
-                required
-                value={form.house}
-                onChange={(e) => setForm({ ...form, house: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-xs"
-              />
-              <input
-                type="text"
-                placeholder="Street / Area / Landmark"
-                required
-                value={form.street}
-                onChange={(e) => setForm({ ...form, street: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-xs"
-              />
-              <div className="grid grid-cols-3 gap-2">
-                <input
-                  type="text"
-                  placeholder="City"
-                  required
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                  className="px-3 py-2 border rounded-lg text-xs"
-                />
-                <input
-                  type="text"
-                  placeholder="State"
-                  required
-                  value={form.state}
-                  onChange={(e) => setForm({ ...form, state: e.target.value })}
-                  className="px-3 py-2 border rounded-lg text-xs"
-                />
-                <input
-                  type="text"
-                  placeholder="PIN Code"
-                  required
-                  value={form.pincode}
-                  onChange={(e) => setForm({ ...form, pincode: e.target.value })}
-                  className="px-3 py-2 border rounded-lg text-xs"
-                />
-              </div>
-              <label className="flex items-center space-x-2 text-xs text-gray-700 cursor-pointer pt-2">
-                <input
-                  type="checkbox"
-                  checked={form.isDefault}
-                  onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                  className="rounded text-navy focus:ring-navy"
-                />
-                <span>Set as default delivery address</span>
-              </label>
-
-              <div className="flex justify-end space-x-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg text-xs font-semibold text-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-navy text-white rounded-lg text-xs font-semibold hover:bg-navy-light"
-                >
-                  Save Address
-                </button>
-              </div>
-            </form>
+      {/* Add / Edit Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editId ? 'Edit Delivery Address' : 'Add New Address'}
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Full Name"
+              placeholder="e.g. John Doe"
+              required
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+            />
+            <Input
+              label="Mobile Number"
+              placeholder="10-digit number"
+              type="tel"
+              required
+              value={form.mobile}
+              onChange={(e) => setForm({ ...form, mobile: e.target.value })}
+            />
           </div>
-        </div>
-      )}
+
+          <Input
+            label="House / Flat / Building No."
+            placeholder="Flat 402, Sunshine Apartments"
+            required
+            value={form.house}
+            onChange={(e) => setForm({ ...form, house: e.target.value })}
+          />
+
+          <Input
+            label="Street / Landmark / Area"
+            placeholder="Near MG Road Central Library"
+            required
+            value={form.street}
+            onChange={(e) => setForm({ ...form, street: e.target.value })}
+          />
+
+          <div className="grid grid-cols-3 gap-2">
+            <Input
+              label="City"
+              placeholder="City"
+              required
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+            />
+            <Input
+              label="State"
+              placeholder="State"
+              required
+              value={form.state}
+              onChange={(e) => setForm({ ...form, state: e.target.value })}
+            />
+            <Input
+              label="PIN Code"
+              placeholder="PIN"
+              required
+              value={form.pincode}
+              onChange={(e) => setForm({ ...form, pincode: e.target.value })}
+            />
+          </div>
+
+          <label className="flex items-center space-x-2.5 text-xs text-textSecondary cursor-pointer pt-2 select-none">
+            <input
+              type="checkbox"
+              checked={form.isDefault}
+              onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
+              className="rounded text-navy focus:ring-navy w-4 h-4 cursor-pointer"
+            />
+            <span className="font-medium text-navy">Make this my default shipping address</span>
+          </label>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-borderMuted">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              isLoading={saving}
+            >
+              {editId ? 'Update Address' : 'Save Address'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

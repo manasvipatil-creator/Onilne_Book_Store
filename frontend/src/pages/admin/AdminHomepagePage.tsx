@@ -1,110 +1,142 @@
 import React, { useEffect, useState } from 'react';
-import { Sliders, CheckCircle } from 'lucide-react';
+import { Sliders, CheckCircle2, Sparkles, Layout } from 'lucide-react';
 import api from '../../services/api';
+import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
+import { useToast } from '../../context/ToastContext';
+import { Skeleton } from '../../components/common/Skeleton';
 
 export const AdminHomepagePage: React.FC = () => {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [success, setSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
-    api.get('/admin/homepage').then((res) => {
-      if (res.data.success) {
-        setConfig(res.data.data.config);
-      }
-      setLoading(false);
-    });
+    api
+      .get('/admin/homepage')
+      .then((res) => {
+        if (res.data.success) {
+          setConfig(res.data.data.config);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccess(false);
+    setSaving(true);
     try {
       const res = await api.patch('/admin/homepage', config);
       if (res.data.success) {
-        setSuccess(true);
+        toast.success('Homepage banner configuration updated live!');
       }
     } catch (err: any) {
-      alert('Failed to update homepage settings');
+      toast.error('Failed to update homepage settings');
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) return <div className="text-gray-500">Loading settings...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-4 max-w-2xl">
+        <Skeleton className="h-8 w-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-black text-navy">Homepage Customization</h1>
-        <p className="text-xs text-gray-500">Manage hero promotional texts and top banners</p>
+        <h1 className="text-2xl sm:text-3xl font-serif font-bold text-navy">
+          Homepage Configuration
+        </h1>
+        <p className="text-xs sm:text-sm text-textSecondary mt-0.5">
+          Customize promotional texts, banners & storefront hero copy
+        </p>
       </div>
 
-      {success && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 flex items-center space-x-2">
-          <CheckCircle className="w-4 h-4" />
-          <span>Homepage configuration updated live!</span>
-        </div>
-      )}
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* Hero Section Card */}
+        <div className="bg-surface p-6 sm:p-8 rounded-2xl border border-borderMuted shadow-soft space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-borderMuted">
+            <Layout className="w-4 h-4 text-golden" />
+            <h3 className="font-serif font-bold text-navy text-base">Hero Banner Section</h3>
+          </div>
 
-      <form onSubmit={handleSave} className="bg-surface p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4 text-xs">
-        <h3 className="font-bold text-navy text-sm border-b pb-2">Hero Banner Section</h3>
-        <div>
-          <label className="block font-bold text-gray-700 mb-1">Heading</label>
-          <input
-            type="text"
+          <Input
+            label="Hero Heading"
             required
             value={config.hero.heading}
-            onChange={(e) => setConfig({ ...config, hero: { ...config.hero, heading: e.target.value } })}
-            className="w-full px-3 py-2 border rounded-lg"
+            onChange={(e) =>
+              setConfig({ ...config, hero: { ...config.hero, heading: e.target.value } })
+            }
           />
-        </div>
-        <div>
-          <label className="block font-bold text-gray-700 mb-1">Description</label>
-          <textarea
-            rows={2}
-            required
-            value={config.hero.description}
-            onChange={(e) => setConfig({ ...config, hero: { ...config.hero, description: e.target.value } })}
-            className="w-full px-3 py-2 border rounded-lg"
-          />
-        </div>
-        <div>
-          <label className="block font-bold text-gray-700 mb-1">Button Text</label>
-          <input
-            type="text"
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-textPrimary">Hero Description</label>
+            <textarea
+              rows={2}
+              required
+              value={config.hero.description}
+              onChange={(e) =>
+                setConfig({ ...config, hero: { ...config.hero, description: e.target.value } })
+              }
+              className="w-full px-3 py-2 border border-borderMuted rounded-xl text-xs sm:text-sm bg-background/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy/20"
+            />
+          </div>
+
+          <Input
+            label="Primary Button Text"
             required
             value={config.hero.buttonText}
-            onChange={(e) => setConfig({ ...config, hero: { ...config.hero, buttonText: e.target.value } })}
-            className="w-full px-3 py-2 border rounded-lg"
+            onChange={(e) =>
+              setConfig({ ...config, hero: { ...config.hero, buttonText: e.target.value } })
+            }
           />
         </div>
 
-        <h3 className="font-bold text-navy text-sm border-b pb-2 pt-4">Offer Banner</h3>
-        <div>
-          <label className="block font-bold text-gray-700 mb-1">Banner Title</label>
-          <input
-            type="text"
+        {/* Promotional Banner Card */}
+        <div className="bg-surface p-6 sm:p-8 rounded-2xl border border-borderMuted shadow-soft space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-borderMuted">
+            <Sparkles className="w-4 h-4 text-golden" />
+            <h3 className="font-serif font-bold text-navy text-base">Promotional Strip Banner</h3>
+          </div>
+
+          <Input
+            label="Promo Banner Title"
             value={config.promoBanner?.title || ''}
-            onChange={(e) => setConfig({ ...config, promoBanner: { ...config.promoBanner, title: e.target.value } })}
-            className="w-full px-3 py-2 border rounded-lg"
+            onChange={(e) =>
+              setConfig({
+                ...config,
+                promoBanner: { ...config.promoBanner, title: e.target.value },
+              })
+            }
           />
-        </div>
-        <div>
-          <label className="block font-bold text-gray-700 mb-1">Discount Coupon Highlight</label>
-          <input
-            type="text"
+
+          <Input
+            label="Promo Coupon Highlight"
             value={config.promoBanner?.discountText || ''}
-            onChange={(e) => setConfig({ ...config, promoBanner: { ...config.promoBanner, discountText: e.target.value } })}
-            className="w-full px-3 py-2 border rounded-lg"
+            onChange={(e) =>
+              setConfig({
+                ...config,
+                promoBanner: { ...config.promoBanner, discountText: e.target.value },
+              })
+            }
           />
         </div>
 
-        <div className="pt-3">
-          <button
+        <div>
+          <Button
             type="submit"
-            className="px-6 py-2.5 bg-navy text-white font-bold rounded-lg hover:bg-navy-light shadow-sm"
+            variant="primary"
+            isLoading={saving}
           >
-            Save Homepage Settings
-          </button>
+            Save Homepage Configuration
+          </Button>
         </div>
       </form>
     </div>

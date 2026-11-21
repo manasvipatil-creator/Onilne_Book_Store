@@ -1,99 +1,160 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Download, Book } from 'lucide-react';
-import { Book as BookType } from '../types';
+import { ShoppingCart, Check } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Book } from '../types';
 import { useCart } from '../context/CartContext';
-import { handleBookImageError } from '../utils/imageFallbacks';
+import { useToast } from '../context/ToastContext';
+import { BookCover } from './common/BookCover';
+import { Badge } from './common/Badge';
 
 interface BookCardProps {
-  book: BookType;
+  book: Book;
+  featured?: boolean;
 }
 
 export const BookCard: React.FC<BookCardProps> = ({ book }) => {
   const { addToCart } = useCart();
+  const toast = useToast();
+  const [isAdding, setIsAdding] = useState(false);
+
+  // Discount percentage calculation
   const discountPercent =
     book.pricing.originalPrice > book.pricing.price
-      ? Math.round(((book.pricing.originalPrice - book.pricing.price) / book.pricing.originalPrice) * 100)
+      ? Math.round(
+          ((book.pricing.originalPrice - book.pricing.price) /
+            book.pricing.originalPrice) *
+            100
+        )
       : 0;
 
-  return (
-    <div className="group bg-surface rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between">
-      <div>
-        {/* Cover Image Container */}
-        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-          <img
-            src={book.coverImage}
-            alt={book.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-            onError={handleBookImageError}
-          />
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-          {/* Product Type Badge */}
-          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1">
-            <span
-              className={`px-2 py-0.5 text-xs font-semibold rounded-md shadow-sm ${book.type === 'ebook'
-                ? 'bg-blue-600 text-white flex items-center gap-1'
-                : 'bg-navy text-white flex items-center gap-1'
-                }`}
-            >
-              {book.type === 'ebook' ? (
-                <>
-                  <Download className="w-3 h-3" /> eBook
-                </>
-              ) : (
-                <>
-                  <Book className="w-3 h-3" /> Paperback
-                </>
-              )}
-            </span>
+    setIsAdding(true);
+    const ok = await addToCart(book._id, 1);
+    if (ok) {
+      toast.success(`"${book.title}" added to your cart!`);
+    } else {
+      toast.error('Failed to add book to cart');
+    }
+
+    setTimeout(() => {
+      setIsAdding(false);
+    }, 1000);
+  };
+
+  const isOutOfStock = book.type === 'physical' && (book.physical?.stock || 0) <= 0;
+
+  return (
+    <motion.div
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
+      className="group relative bg-surface rounded-2xl border border-borderMuted hover:border-navy/20 p-3.5 sm:p-4 shadow-soft hover:shadow-elevated transition-all duration-300 flex flex-col h-full"
+    >
+      <Link to={`/books/${book.slug || book._id}`} className="flex flex-col flex-grow">
+        {/* Book Cover Container with fixed 3/4 aspect ratio */}
+        <div className="relative mb-3.5 overflow-hidden rounded-xl bg-slate-100">
+          <div className="transition-transform duration-300 group-hover:scale-105">
+            <BookCover
+              src={book.coverImage}
+              alt={book.title}
+              aspectRatio="aspect-[3/4]"
+              loading="lazy"
+            />
+          </div>
+
+          {/* Badges container */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start z-10 pointer-events-none">
+            {book.type === 'ebook' ? (
+              <Badge variant="ebook" size="sm">
+                Instant eBook
+              </Badge>
+            ) : (
+              <Badge variant="paperback" size="sm">
+                Paperback
+              </Badge>
+            )}
+
             {book.isBestSeller && (
-              <span className="bg-golden text-navy text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
-                BESTSELLER
-              </span>
+              <Badge variant="bestseller" size="sm">
+                Bestseller
+              </Badge>
             )}
           </div>
 
-          {/* Discount Badge */}
           {discountPercent > 0 && (
-            <div className="absolute top-2.5 right-2.5 bg-golden text-navy font-bold text-xs px-2 py-0.5 rounded shadow-sm">
-              {discountPercent}% OFF
+            <div className="absolute top-2 right-2 z-10 pointer-events-none">
+              <Badge variant="discount" size="sm">
+                {discountPercent}% OFF
+              </Badge>
             </div>
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-4">
-          <p className="text-xs text-gray-500 font-medium line-clamp-1 mb-1">
-            {typeof book.categoryId === 'object' ? book.categoryId.name : 'Literature'}
+        {/* Content Area - Fixed Clamps for Equal Heights */}
+        <div className="flex flex-col flex-grow">
+          {/* Category Tag */}
+          <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1">
+            {typeof book.categoryId === 'object' && book.categoryId !== null
+              ? (book.categoryId as any).name
+              : 'Literature'}
+          </span>
+
+          {/* Title - exactly 2 lines clamped */}
+          <h3 className="font-serif font-bold text-navy text-sm sm:text-base leading-snug line-clamp-2 mb-1 group-hover:text-golden transition-colors min-h-[2.5rem]">
+            {book.title}
+          </h3>
+
+          {/* Author - exactly 1 line clamped */}
+          <p className="text-xs text-textSecondary line-clamp-1 mb-3">
+            by {book.author}
           </p>
-          <Link to={`/books/${book.slug}`}>
-            <h3 className="font-bold text-navy text-base line-clamp-2 hover:text-golden transition-colors mb-1" title={book.title}>
-              {book.title}
-            </h3>
-          </Link>
-          <p className="text-xs text-gray-600 line-clamp-1 mb-3">by {book.author}</p>
 
           {/* Price display */}
-          <div className="flex items-baseline space-x-2">
-            <span className="text-lg font-bold text-navy">₹{book.pricing.price}</span>
+          <div className="flex items-baseline space-x-2 mt-auto pb-3">
+            <span className="text-base sm:text-lg font-bold text-navy">
+              ₹{book.pricing.price}
+            </span>
             {book.pricing.originalPrice > book.pricing.price && (
-              <span className="text-xs text-gray-400 line-through">₹{book.pricing.originalPrice}</span>
+              <span className="text-xs text-textSecondary line-through font-normal">
+                ₹{book.pricing.originalPrice}
+              </span>
             )}
           </div>
         </div>
-      </div>
+      </Link>
 
-      {/* Action Buttons: Full-Width Add to Cart matching reference */}
-      <div className="p-3 pt-0">
+      {/* Add to Cart Button - Pinned cleanly at the bottom */}
+      <div className="mt-auto pt-2 border-t border-borderMuted/60">
         <button
-          onClick={() => addToCart(book._id, 1)}
-          className="w-full flex items-center justify-center space-x-1.5 py-2 text-xs font-bold text-white bg-navy hover:bg-navy-light rounded-lg transition-all shadow-sm active:scale-98 group/btn"
+          type="button"
+          onClick={handleAddToCart}
+          disabled={isOutOfStock}
+          className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-2 active:scale-95 ${
+            isOutOfStock
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+              : isAdding
+              ? 'bg-emerald-600 text-white shadow-soft'
+              : 'bg-navy text-white hover:bg-navy-light shadow-soft hover:shadow-md'
+          }`}
         >
-          <ShoppingCart className="w-3.5 h-3.5 text-golden group-hover/btn:scale-110 transition-transform" />
-          <span>Add to Cart</span>
+          {isOutOfStock ? (
+            <span>Out of Stock</span>
+          ) : isAdding ? (
+            <>
+              <Check className="w-3.5 h-3.5" />
+              <span>Added!</span>
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="w-3.5 h-3.5 text-golden" />
+              <span>Add to Cart</span>
+            </>
+          )}
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -1,127 +1,177 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, ShoppingBag, ArrowRight, Book, Download } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowRight, Book, Download, Tag, Check, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { Button, Card, Badge, EmptyState, Input } from '../components/common';
 import { handleBookImageError } from '../utils/imageFallbacks';
 
 export const CartPage: React.FC = () => {
   const { items, subtotal, totalItems, updateQuantity, removeFromCart, loading } = useCart();
   const { user } = useAuth();
+  const { success, error } = useToast();
   const navigate = useNavigate();
+
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
 
   if (!user) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <div className="w-16 h-16 bg-navy text-golden rounded-full flex items-center justify-center mx-auto mb-4">
-          <ShoppingBag className="w-8 h-8" />
-        </div>
-        <h2 className="text-2xl font-bold text-navy mb-2">Please sign in to view your cart</h2>
-        <p className="text-gray-500 text-sm mb-6">Your selected books and eBook downloads will be saved to your account.</p>
-        <Link to="/login" className="px-6 py-2.5 bg-navy text-white rounded-lg font-semibold text-sm">
-          Sign In
-        </Link>
+      <div className="max-w-7xl mx-auto px-4 py-20">
+        <EmptyState
+          icon={<ShoppingBag className="w-8 h-8 text-golden" />}
+          title="Please sign in to view your cart"
+          description="Your selected paperbacks and instant digital downloads are securely saved to your reader account."
+          actionText="Sign In Now"
+          onAction={() => navigate('/login')}
+        />
       </div>
     );
   }
 
   if (items.length === 0 && !loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-          <ShoppingBag className="w-10 h-10" />
-        </div>
-        <h2 className="text-2xl font-bold text-navy mb-2">Your shopping cart is empty</h2>
-        <p className="text-gray-500 text-sm mb-6">Explore our curated collection of paperbacks and instant eBooks.</p>
-        <Link
-          to="/books"
-          className="inline-flex items-center space-x-2 px-6 py-3 bg-golden text-navy rounded-lg font-bold text-sm hover:bg-golden-light"
-        >
-          <span>Continue Shopping</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
+      <div className="max-w-7xl mx-auto px-4 py-20">
+        <EmptyState
+          icon={<ShoppingBag className="w-8 h-8 text-slate-400" />}
+          title="Your shopping cart is empty"
+          description="Explore thousands of bestselling titles, profound literature, and instant digital eBooks."
+          actionText="Explore All Books"
+          onAction={() => navigate('/books')}
+        />
       </div>
     );
   }
 
-  const shipping = subtotal < 500 && items.some((i) => i.book.type === 'physical') ? 50 : 0;
-  const tax = Math.round(subtotal * 0.05);
-  const finalTotal = subtotal + shipping + tax;
+  const hasPhysical = items.some((i) => i.book.type === 'physical');
+  const freeShippingThreshold = 499;
+  const shipping = hasPhysical && subtotal < freeShippingThreshold ? 50 : 0;
+  const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
+  const tax = Math.round((subtotal - couponDiscount) * 0.05);
+  const finalTotal = Math.max(0, subtotal - couponDiscount) + shipping + tax;
+
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+
+    if (couponCode.toUpperCase() === 'WELCOME10') {
+      const disc = Math.round(subtotal * 0.1);
+      setCouponDiscount(disc);
+      setAppliedCoupon('WELCOME10');
+      success('10% Welcome discount applied successfully!');
+    } else if (couponCode.toUpperCase() === 'READMORE') {
+      if (subtotal < 699) {
+        error('READMORE requires minimum order of ₹699');
+        return;
+      }
+      setCouponDiscount(100);
+      setAppliedCoupon('READMORE');
+      success('Flat ₹100 READMORE discount applied!');
+    } else {
+      error('Invalid promotional coupon code');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      <div>
-        <h1 className="text-3xl font-extrabold text-navy">Shopping Cart</h1>
-        <p className="text-sm text-gray-500 mt-1">Review {totalItems} items in your order</p>
+      {/* Editorial Header */}
+      <div className="pb-6 border-b border-borderMuted flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <span className="text-xs font-black uppercase tracking-widest text-golden flex items-center space-x-1 mb-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Order Preparation</span>
+          </span>
+          <h1 className="font-serif text-3xl sm:text-4xl font-black text-navy tracking-tight">
+            Shopping Cart
+          </h1>
+          <p className="text-sm text-textSecondary mt-1">
+            Review <span className="font-bold text-navy">{totalItems} items</span> in your reading basket
+          </p>
+        </div>
+
+        {hasPhysical && amountNeededForFreeShipping > 0 && (
+          <div className="text-xs font-bold text-amber-800 bg-amber-50 px-4 py-2 rounded-full border border-amber-200">
+            Add <strong>₹{amountNeededForFreeShipping}</strong> more for <strong>FREE Delivery</strong>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Items List */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Side: Items List (8 cols on lg) */}
+        <div className="lg:col-span-8 space-y-4">
           {items.map((item) => (
             <div
               key={item.book.id}
-              className="bg-surface p-4 sm:p-6 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
+              className="bg-surface p-4 sm:p-6 rounded-3xl border border-borderMuted shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:shadow-sm transition-all"
             >
               <div className="flex items-center space-x-4">
-                <img
-                  src={item.book.coverImage}
-                  alt={item.book.title}
-                  className="w-16 h-20 object-cover rounded shadow-sm bg-gray-100 flex-shrink-0"
-                  onError={handleBookImageError}
-                />
-                <div>
-                  <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">
-                    {item.book.type === 'ebook' ? (
-                      <span className="text-blue-600 flex items-center">
-                        <Download className="w-3 h-3 mr-1" /> Digital eBook
-                      </span>
-                    ) : (
-                      <span className="text-navy flex items-center">
-                        <Book className="w-3 h-3 mr-1 text-golden" /> Physical Book
-                      </span>
-                    )}
-                  </span>
+                <Link to={`/books/${item.book.slug}`} className="flex-shrink-0">
+                  <img
+                    src={item.book.coverImage}
+                    alt={item.book.title}
+                    className="w-16 h-22 sm:w-20 sm:h-26 object-cover rounded-xl shadow-xs border border-borderMuted bg-slate-50"
+                    onError={handleBookImageError}
+                  />
+                </Link>
+
+                <div className="space-y-1">
+                  <Badge
+                    variant={item.book.type === 'ebook' ? 'ebook' : 'paperback'}
+                    size="sm"
+                    icon={item.book.type === 'ebook' ? <Download className="w-2.5 h-2.5" /> : <Book className="w-2.5 h-2.5" />}
+                  >
+                    {item.book.type === 'ebook' ? 'Digital eBook' : 'Paperback'}
+                  </Badge>
+
                   <Link to={`/books/${item.book.slug}`}>
-                    <h4 className="font-bold text-navy text-sm sm:text-base hover:text-golden line-clamp-1">
+                    <h3 className="font-serif font-bold text-navy text-sm sm:text-base hover:text-golden line-clamp-1 transition-colors">
                       {item.book.title}
-                    </h4>
+                    </h3>
                   </Link>
-                  <p className="text-xs text-gray-500 mb-1">by {item.book.author}</p>
-                  <p className="text-sm font-bold text-navy">₹{item.book.price}</p>
+                  <p className="text-xs text-textSecondary">by {item.book.author}</p>
+                  <p className="text-sm font-bold text-navy pt-0.5">₹{item.book.price}</p>
                 </div>
               </div>
 
-              {/* Controls */}
-              <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-6">
+              {/* Quantity Controls & Actions */}
+              <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-5 pt-2 sm:pt-0 border-t sm:border-t-0 border-borderMuted">
                 {item.book.type === 'physical' ? (
-                  <div className="flex items-center border border-gray-300 rounded-lg">
+                  <div className="flex items-center border border-borderMuted rounded-xl bg-slate-50 shadow-xs">
                     <button
                       onClick={() => updateQuantity(item.book.id, item.quantity - 1)}
-                      className="px-2.5 py-1 text-navy font-bold hover:bg-gray-100"
+                      className="px-3 py-1 text-navy font-bold hover:bg-slate-200 rounded-l-xl transition-colors"
+                      title="Decrease quantity"
                     >
                       -
                     </button>
-                    <span className="px-3 py-1 font-semibold text-xs">{item.quantity}</span>
+                    <span className="px-3 py-1 font-black text-xs text-navy">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.book.id, item.quantity + 1)}
-                      className="px-2.5 py-1 text-navy font-bold hover:bg-gray-100"
+                      className="px-3 py-1 text-navy font-bold hover:bg-slate-200 rounded-r-xl transition-colors"
+                      title="Increase quantity"
                     >
                       +
                     </button>
                   </div>
                 ) : (
-                  <span className="text-xs text-gray-400 font-medium italic">Qty: 1 (eBook)</span>
+                  <span className="text-[11px] font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200">
+                    Qty: 1 (Single License)
+                  </span>
                 )}
 
                 <div className="text-right">
-                  <p className="text-base font-bold text-navy">₹{item.subtotal}</p>
+                  <p className="text-base sm:text-lg font-black text-navy">₹{item.subtotal}</p>
                 </div>
 
                 <button
-                  onClick={() => removeFromCart(item.book.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                  title="Remove"
+                  onClick={() => {
+                    removeFromCart(item.book.id);
+                    success('Item removed from cart');
+                  }}
+                  className="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 transition-colors"
+                  title="Remove book from cart"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -132,49 +182,92 @@ export const CartPage: React.FC = () => {
           <div className="pt-2">
             <Link
               to="/books"
-              className="text-xs font-semibold text-navy hover:text-golden flex items-center space-x-1"
+              className="text-xs font-bold text-navy hover:text-golden inline-flex items-center space-x-1.5 transition-colors"
             >
-              <span>← Continue Browsing More Books</span>
+              <span>← Continue Exploring More Books</span>
             </Link>
           </div>
         </div>
 
-        {/* Order Summary Checkout Card */}
-        <div className="bg-surface p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
-          <h3 className="font-bold text-navy text-lg pb-3 border-b border-gray-200">Order Summary</h3>
+        {/* Right Side: Sticky Order Summary Card (4 cols on lg) */}
+        <div className="lg:col-span-4 sticky top-28 space-y-4">
+          <Card className="p-6 sm:p-7 space-y-6">
+            <h3 className="font-serif text-xl font-bold text-navy pb-3 border-b border-borderMuted">
+              Order Summary
+            </h3>
 
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>Items Subtotal</span>
-              <span className="font-medium text-navy">₹{subtotal}</span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Estimated Shipping</span>
-              <span className="font-medium text-navy">
-                {shipping === 0 ? <span className="text-green-600">FREE</span> : `₹${shipping}`}
-              </span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Tax (GST 5%)</span>
-              <span className="font-medium text-navy">₹{tax}</span>
-            </div>
-            <div className="pt-3 border-t border-gray-200 flex justify-between text-base font-extrabold text-navy">
-              <span>Final Total</span>
-              <span className="text-xl">₹{finalTotal}</span>
-            </div>
-          </div>
+            {/* Price lines */}
+            <div className="space-y-3 text-xs sm:text-sm">
+              <div className="flex justify-between text-textSecondary">
+                <span>Items Subtotal:</span>
+                <span className="font-bold text-navy">₹{subtotal}</span>
+              </div>
 
-          <button
-            onClick={() => navigate('/checkout')}
-            className="w-full py-3.5 bg-navy text-white font-bold rounded-lg hover:bg-navy-light transition-all text-sm flex items-center justify-center space-x-2 shadow-md"
-          >
-            <span>Proceed to Checkout</span>
-            <ArrowRight className="w-4 h-4 text-golden" />
-          </button>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-emerald-700 font-bold">
+                  <span>Coupon Discount ({appliedCoupon}):</span>
+                  <span>-₹{couponDiscount}</span>
+                </div>
+              )}
 
-          <p className="text-[11px] text-gray-400 text-center">
-            Encrypted payment processed safely with Razorpay gateway.
-          </p>
+              <div className="flex justify-between text-textSecondary">
+                <span>Standard Shipping:</span>
+                <span className="font-bold text-navy">
+                  {shipping === 0 ? <span className="text-emerald-600 font-black">FREE</span> : `₹${shipping}`}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-textSecondary">
+                <span>Estimated Taxes (5%):</span>
+                <span className="font-bold text-navy">₹{tax}</span>
+              </div>
+
+              <div className="pt-4 border-t border-borderMuted flex justify-between items-baseline">
+                <span className="font-serif text-base font-bold text-navy">Total Payable:</span>
+                <span className="font-black text-2xl text-navy">₹{finalTotal}</span>
+              </div>
+            </div>
+
+            {/* Coupon Input Form */}
+            <form onSubmit={handleApplyCoupon} className="space-y-2 pt-2 border-t border-borderMuted">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy">
+                Promo Code
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="e.g. WELCOME10"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  className="flex-1 px-3 py-2 border border-borderMuted rounded-xl text-xs bg-slate-50 focus:bg-white uppercase focus:outline-none focus:ring-2 focus:ring-navy/20"
+                />
+                <Button type="submit" variant="secondary" size="sm">
+                  Apply
+                </Button>
+              </div>
+              {appliedCoupon && (
+                <p className="text-[11px] font-bold text-emerald-600 flex items-center space-x-1">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Promo active: {appliedCoupon}</span>
+                </p>
+              )}
+            </form>
+
+            {/* Checkout Action Button */}
+            <Button
+              variant="gold"
+              size="lg"
+              className="w-full font-black shadow-md flex items-center justify-center space-x-2"
+              onClick={() => navigate('/checkout')}
+            >
+              <span>Proceed to Checkout</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+
+            <p className="text-[11px] text-center text-textSecondary">
+              🔒 100% Encrypted & Protected by Razorpay
+            </p>
+          </Card>
         </div>
       </div>
     </div>

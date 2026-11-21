@@ -11,22 +11,31 @@ import {
   Globe,
   Tag,
   CheckCircle,
+  ArrowLeft,
+  Sparkles,
+  FileText,
+  Info,
 } from 'lucide-react';
 import api from '../services/api';
 import { Book } from '../types';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import { BookCard } from '../components/BookCard';
+import { Button, Badge, Card, Skeleton, BookCover } from '../components/common';
 import { handleBookImageError } from '../utils/imageFallbacks';
 
 export const BookDetailsPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { success, error } = useToast();
 
   const [book, setBook] = useState<Book | null>(null);
   const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
   const [quantity, setQuantity] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'description' | 'details' | 'shipping'>('description');
 
   useEffect(() => {
     const fetchBookDetails = async () => {
@@ -50,19 +59,30 @@ export const BookDetailsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center animate-pulse">
-        <div className="w-16 h-16 border-4 border-navy border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-500 font-medium">Loading book details...</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <Skeleton className="aspect-[3/4] w-full rounded-3xl" />
+          <div className="space-y-4">
+            <Skeleton variant="text" className="w-1/4 h-5" />
+            <Skeleton variant="text" className="w-4/5 h-8" />
+            <Skeleton variant="text" className="w-1/3 h-5" />
+            <Skeleton className="w-full h-20 rounded-2xl" />
+            <Skeleton className="w-full h-12 rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!book) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-2xl font-bold text-navy mb-4">Book not found</h2>
-        <Link to="/books" className="px-6 py-2.5 bg-navy text-white rounded-lg font-semibold">
-          Browse All Books
+      <div className="max-w-7xl mx-auto px-4 py-24 text-center">
+        <h2 className="font-serif text-3xl font-black text-navy mb-4">Book Not Found</h2>
+        <p className="text-textSecondary text-sm mb-6">
+          The requested title is no longer available in our active catalog.
+        </p>
+        <Link to="/books">
+          <Button variant="primary">Browse All Collections</Button>
         </Link>
       </div>
     );
@@ -74,99 +94,143 @@ export const BookDetailsPage: React.FC = () => {
       : 0;
 
   const handleAddToCart = async () => {
-    await addToCart(book._id, quantity);
+    setIsAdding(true);
+    try {
+      const ok = await addToCart(book._id, quantity);
+      if (ok) {
+        success(`"${book.title}" added to your shopping cart!`);
+      }
+    } catch {
+      error('Failed to add book to cart');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleBuyNow = async () => {
-    const success = await addToCart(book._id, quantity);
-    if (success) {
-      navigate('/cart');
+    setIsAdding(true);
+    try {
+      const ok = await addToCart(book._id, quantity);
+      if (ok) {
+        navigate('/cart');
+      }
+    } catch {
+      error('Failed to proceed with checkout');
+    } finally {
+      setIsAdding(false);
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16">
-      {/* Product Hero */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-        {/* Cover Image Container */}
-        <div className="relative aspect-[3/4] max-w-md mx-auto md:max-w-none w-full rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white">
-          <img
-            src={book.coverImage}
-            alt={book.title}
-            className="w-full h-full object-cover"
-            onError={handleBookImageError}
-          />
+      {/* Breadcrumb Navigation */}
+      <nav className="flex items-center space-x-2 text-xs font-bold text-textSecondary">
+        <Link to="/" className="hover:text-navy transition-colors">Home</Link>
+        <span>/</span>
+        <Link to="/books" className="hover:text-navy transition-colors">Books</Link>
+        <span>/</span>
+        <span className="text-navy truncate max-w-xs">{book.title}</span>
+      </nav>
+
+      {/* Main Product Hero */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        {/* Left Column: Large Book Cover (5 cols) */}
+        <div className="lg:col-span-5 relative">
+          <div className="w-full rounded-3xl overflow-hidden shadow-elevated border border-borderMuted bg-surface p-2">
+            <BookCover
+              src={book.coverImage}
+              alt={book.title}
+              aspectRatio="aspect-[3/4]"
+              loading="eager"
+            />
+          </div>
+
+          {/* Top badges */}
+          <div className="absolute top-6 left-6 flex flex-col gap-2">
+            <Badge
+              variant={book.type === 'ebook' ? 'ebook' : 'paperback'}
+              size="md"
+              icon={book.type === 'ebook' ? <Download className="w-3 h-3" /> : <BookIcon className="w-3 h-3" />}
+            >
+              {book.type === 'ebook' ? 'Instant Digital eBook' : 'Physical Paperback'}
+            </Badge>
+
+            {book.isBestSeller && (
+              <Badge variant="bestseller" size="md">
+                BESTSELLER
+              </Badge>
+            )}
+          </div>
+
           {discountPercent > 0 && (
-            <span className="absolute top-4 right-4 bg-golden text-navy font-bold text-sm px-3 py-1 rounded-md shadow-md">
+            <span className="absolute top-6 right-6 bg-golden text-navy font-black text-xs px-3 py-1 rounded-full shadow-md">
               {discountPercent}% OFF
             </span>
           )}
         </div>
 
-        {/* Info & Purchase Area */}
-        <div className="space-y-6">
+        {/* Right Column: Book Details & Purchase Area (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
           <div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-navy mb-2">
-              {book.type === 'ebook' ? (
-                <>
-                  <Download className="w-3 h-3 mr-1 text-blue-600" /> Instant Digital eBook
-                </>
-              ) : (
-                <>
-                  <BookIcon className="w-3 h-3 mr-1 text-golden" /> Physical Book Edition
-                </>
-              )}
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-black text-navy tracking-tight">{book.title}</h1>
-            <p className="text-base text-gray-600 mt-1">
-              By <span className="font-semibold text-navy">{book.author}</span>
+            <p className="text-xs font-black uppercase tracking-widest text-golden mb-1.5">
+              {typeof book.categoryId === 'object' ? book.categoryId.name : 'Curated Literature'}
+            </p>
+            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-navy leading-tight tracking-tight">
+              {book.title}
+            </h1>
+            <p className="text-sm sm:text-base text-textSecondary mt-2">
+              Written by <span className="font-bold text-navy">{book.author}</span>
             </p>
           </div>
 
-          {/* Pricing */}
-          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-baseline space-x-4">
-            <span className="text-3xl font-extrabold text-navy">₹{book.pricing.price}</span>
+          {/* Pricing Strip */}
+          <div className="p-5 rounded-2xl bg-surface border border-borderMuted shadow-xs flex flex-wrap items-baseline gap-4">
+            <span className="text-3xl sm:text-4xl font-black text-navy">
+              ₹{book.pricing.price}
+            </span>
             {book.pricing.originalPrice > book.pricing.price && (
-              <span className="text-lg text-gray-400 line-through">₹{book.pricing.originalPrice}</span>
+              <span className="text-lg text-slate-400 line-through">
+                ₹{book.pricing.originalPrice}
+              </span>
             )}
-            <span className="text-xs text-green-700 font-semibold bg-green-50 px-2.5 py-1 rounded border border-green-200">
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
               Inclusive of all taxes
             </span>
           </div>
 
-          {/* Availability / Stock */}
-          <div className="text-sm">
+          {/* Stock / Availability Status */}
+          <div className="text-xs font-bold">
             {book.type === 'physical' ? (
               (book.physical?.stock ?? 0) > 0 ? (
-                <p className="text-green-700 font-semibold flex items-center">
-                  <CheckCircle className="w-4 h-4 mr-1.5" /> In Stock ({book.physical?.stock} copies available)
+                <p className="text-emerald-700 flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-1.5" /> In Stock ({book.physical?.stock} copies ready to ship)
                 </p>
               ) : (
-                <p className="text-red-600 font-semibold">Out of Stock</p>
+                <p className="text-rose-600">Currently Out of Stock</p>
               )
             ) : (
-              <p className="text-blue-700 font-semibold flex items-center">
-                <CheckCircle className="w-4 h-4 mr-1.5" /> Instant Digital Download Available (PDF/EPUB)
+              <p className="text-sky-700 flex items-center">
+                <CheckCircle className="w-4 h-4 mr-1.5" /> Instant Digital Access (PDF & EPUB files immediately unlocked)
               </p>
             )}
           </div>
 
-          {/* Purchase Actions */}
+          {/* Quantity & CTA Buttons */}
           <div className="space-y-4 pt-2">
             {book.type === 'physical' && (
-              <div className="flex items-center space-x-4">
-                <label className="text-xs font-bold text-gray-700 uppercase">Quantity:</label>
-                <div className="flex items-center border border-gray-300 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <span className="text-xs font-black uppercase tracking-wider text-navy">Quantity:</span>
+                <div className="flex items-center border border-borderMuted rounded-xl bg-surface shadow-xs">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-1 text-navy font-bold hover:bg-gray-100"
+                    className="px-3.5 py-1.5 text-navy font-bold hover:bg-slate-50 transition-colors"
                   >
                     -
                   </button>
-                  <span className="px-4 py-1 font-semibold text-sm">{quantity}</span>
+                  <span className="px-4 py-1.5 font-black text-sm text-navy">{quantity}</span>
                   <button
                     onClick={() => setQuantity(Math.min(book.physical?.stock || 10, quantity + 1))}
-                    className="px-3 py-1 text-navy font-bold hover:bg-gray-100"
+                    className="px-3.5 py-1.5 text-navy font-bold hover:bg-slate-50 transition-colors"
                   >
                     +
                   </button>
@@ -175,83 +239,192 @@ export const BookDetailsPage: React.FC = () => {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
+              <Button
+                variant="primary"
+                size="lg"
+                icon={<ShoppingCart className="w-4 h-4 text-golden" />}
+                isLoading={isAdding}
+                disabled={book.type === 'physical' && (book.physical?.stock ?? 0) <= 0}
                 onClick={handleAddToCart}
-                disabled={book.type === 'physical' && (book.physical?.stock ?? 0) <= 0}
-                className="flex items-center justify-center space-x-2 py-3.5 px-6 rounded-lg bg-navy text-white font-bold hover:bg-navy-light disabled:opacity-50 transition-colors shadow-sm"
+                className="w-full"
               >
-                <ShoppingCart className="w-5 h-5 text-golden" />
-                <span>Add to Cart</span>
-              </button>
-              <button
-                onClick={handleBuyNow}
+                Add to Cart
+              </Button>
+
+              <Button
+                variant="gold"
+                size="lg"
                 disabled={book.type === 'physical' && (book.physical?.stock ?? 0) <= 0}
-                className="py-3.5 px-6 rounded-lg bg-golden text-navy font-bold hover:bg-golden-light disabled:opacity-50 transition-colors shadow-sm"
+                onClick={handleBuyNow}
+                className="w-full font-black"
               >
                 Buy Now
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* Key metadata grid */}
-          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-200 text-xs">
-            <div className="flex items-center space-x-2 text-gray-600">
-              <Globe className="w-4 h-4 text-golden" />
-              <span>Language: <strong>{book.language}</strong></span>
+          {/* Quick Specifications Metadata Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-borderMuted text-xs">
+            <div className="p-3 bg-slate-50/70 rounded-xl space-y-1">
+              <span className="text-textSecondary flex items-center space-x-1">
+                <Globe className="w-3.5 h-3.5 text-golden" />
+                <span>Language</span>
+              </span>
+              <p className="font-bold text-navy">{book.language || 'English'}</p>
             </div>
-            <div className="flex items-center space-x-2 text-gray-600">
-              <Layers className="w-4 h-4 text-golden" />
-              <span>Pages: <strong>{book.pages}</strong></span>
+
+            <div className="p-3 bg-slate-50/70 rounded-xl space-y-1">
+              <span className="text-textSecondary flex items-center space-x-1">
+                <Layers className="w-3.5 h-3.5 text-golden" />
+                <span>Pages</span>
+              </span>
+              <p className="font-bold text-navy">{book.pages || 'N/A'}</p>
             </div>
-            <div className="flex items-center space-x-2 text-gray-600">
-              <Calendar className="w-4 h-4 text-golden" />
-              <span>Publisher: <strong>{book.publisher}</strong></span>
+
+            <div className="p-3 bg-slate-50/70 rounded-xl space-y-1">
+              <span className="text-textSecondary flex items-center space-x-1">
+                <Calendar className="w-3.5 h-3.5 text-golden" />
+                <span>Publisher</span>
+              </span>
+              <p className="font-bold text-navy truncate">{book.publisher || 'Independent'}</p>
             </div>
-            <div className="flex items-center space-x-2 text-gray-600">
-              <Tag className="w-4 h-4 text-golden" />
-              <span>ISBN: <strong>{book.isbn || 'N/A'}</strong></span>
+
+            <div className="p-3 bg-slate-50/70 rounded-xl space-y-1">
+              <span className="text-textSecondary flex items-center space-x-1">
+                <Tag className="w-3.5 h-3.5 text-golden" />
+                <span>ISBN</span>
+              </span>
+              <p className="font-bold text-navy truncate">{book.isbn || 'N/A'}</p>
             </div>
           </div>
 
           {/* Fulfillment Guarantee Note */}
-          <div className="p-4 rounded-xl bg-navy bg-opacity-5 border border-navy border-opacity-10 space-y-2 text-xs text-navy">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-borderMuted space-y-2 text-xs text-textPrimary">
             {book.type === 'physical' ? (
-              <div className="flex items-start space-x-2">
+              <div className="flex items-start space-x-2.5">
                 <Truck className="w-4 h-4 text-navy mt-0.5 flex-shrink-0" />
                 <span>
-                  <strong>Standard Delivery:</strong> Dispatched in 24 hours. Delivery within 3-5 business days across India.
+                  <strong>Pan-India Delivery:</strong> Dispatched in 24 hours. Delivered in 2-4 business days with live courier tracking.
                 </span>
               </div>
             ) : (
-              <div className="flex items-start space-x-2">
+              <div className="flex items-start space-x-2.5">
                 <Download className="w-4 h-4 text-navy mt-0.5 flex-shrink-0" />
                 <span>
-                  <strong>Immediate Access:</strong> Access link added to your customer dashboard instantly after checkout verification.
+                  <strong>Instant Digital Download:</strong> Download link immediately unlocked in your account dashboard upon payment confirmation.
                 </span>
               </div>
             )}
-            <div className="flex items-start space-x-2">
+            <div className="flex items-start space-x-2.5">
               <ShieldCheck className="w-4 h-4 text-navy mt-0.5 flex-shrink-0" />
               <span>
-                <strong>Authenticity Guarantee:</strong> 100% genuine copies sourced directly from authorized publishing houses.
+                <strong>100% Genuine Guarantee:</strong> Sourced directly from publishers. Razorpay-secured payments.
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Description Section */}
-      <div className="bg-surface rounded-2xl p-8 border border-gray-200">
-        <h2 className="text-xl font-bold text-navy mb-4">Book Description</h2>
-        <div className="prose max-w-none text-gray-700 leading-relaxed text-sm sm:text-base">
-          {book.description}
+      {/* Tabs Section for Description / Details / Shipping */}
+      <div className="bg-surface rounded-3xl border border-borderMuted p-6 sm:p-10 shadow-xs">
+        <div className="flex items-center space-x-6 border-b border-borderMuted pb-4 mb-6">
+          <button
+            onClick={() => setActiveTab('description')}
+            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${
+              activeTab === 'description' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
+            }`}
+          >
+            Description
+          </button>
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${
+              activeTab === 'details' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
+            }`}
+          >
+            Product Details
+          </button>
+          <button
+            onClick={() => setActiveTab('shipping')}
+            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${
+              activeTab === 'shipping' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
+            }`}
+          >
+            Shipping & Returns
+          </button>
+        </div>
+
+        <div>
+          {activeTab === 'description' && (
+            <div className="prose max-w-none text-slate-700 leading-relaxed text-sm sm:text-base font-serif">
+              <p className="whitespace-pre-line">{book.description}</p>
+            </div>
+          )}
+
+          {activeTab === 'details' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+              <div className="flex justify-between py-2 border-b border-borderMuted">
+                <span className="text-textSecondary">Full Title:</span>
+                <span className="font-bold text-navy">{book.title}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-borderMuted">
+                <span className="text-textSecondary">Author:</span>
+                <span className="font-bold text-navy">{book.author}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-borderMuted">
+                <span className="text-textSecondary">Publisher:</span>
+                <span className="font-bold text-navy">{book.publisher || 'Independent'}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-borderMuted">
+                <span className="text-textSecondary">ISBN-13:</span>
+                <span className="font-bold text-navy">{book.isbn || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-borderMuted">
+                <span className="text-textSecondary">Language:</span>
+                <span className="font-bold text-navy">{book.language || 'English'}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-borderMuted">
+                <span className="text-textSecondary">Edition Format:</span>
+                <span className="font-bold text-navy capitalize">{book.type}</span>
+              </div>
+              {book.type === 'ebook' && book.digital && (
+                <>
+                  <div className="flex justify-between py-2 border-b border-borderMuted">
+                    <span className="text-textSecondary">File Format:</span>
+                    <span className="font-bold text-navy uppercase">{book.digital.fileFormat}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-borderMuted">
+                    <span className="text-textSecondary">File Size:</span>
+                    <span className="font-bold text-navy">{(book.digital.fileSize / (1024 * 1024)).toFixed(2)} MB</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'shipping' && (
+            <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+              <p>
+                <strong>Delivery Timelines:</strong> Physical books are packed in bubble-wrap reinforcement and dispatched via BlueDart / Delhivery / IndiaPost Express within 24 hours. Transit time is 2-4 business days depending on location.
+              </p>
+              <p>
+                <strong>Digital Downloads:</strong> Instant delivery. eBooks in PDF and EPUB format are available immediately upon payment confirmation in your customer dashboard under "My eBooks".
+              </p>
+              <p>
+                <strong>Hassle-free Returns:</strong> 7-day replacement policy for damaged or defective physical books upon delivery.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Related Books */}
       {relatedBooks.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold text-navy mb-6">You May Also Like</h2>
+        <div className="space-y-6">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-1.5 h-6 bg-golden rounded-full"></div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-black text-navy">You May Also Like</h2>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {relatedBooks.map((relBook) => (
               <BookCard key={relBook._id} book={relBook as any} />

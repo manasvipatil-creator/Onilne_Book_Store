@@ -88,7 +88,13 @@ export const getBooks = async (req: Request, res: Response): Promise<void> => {
 export const getBookBySlug = async (req: Request, res: Response): Promise<void> => {
   try {
     const { slug } = req.params;
-    const book = await Book.findOne({ slug, status: 'published' }).populate('categoryId', 'name slug');
+    let book = await Book.findOne({ slug, status: 'published' }).populate('categoryId', 'name slug');
+    
+    // Fallback: If not found by slug and slug looks like a valid Mongo ObjectId, try searching by _id
+    if (!book && slug.match(/^[0-9a-fA-F]{24}$/)) {
+      book = await Book.findOne({ _id: slug, status: 'published' }).populate('categoryId', 'name slug');
+    }
+
     if (!book) {
       res.status(404).json({ success: false, message: 'Book not found' });
       return;
