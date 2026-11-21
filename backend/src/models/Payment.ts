@@ -6,9 +6,13 @@ export interface IPayment extends Document {
   razorpayOrderId: string;
   razorpayPaymentId?: string;
   razorpaySignature?: string;
-  amount: number;
+  amount: number; // in rupees
   currency: string;
   status: 'created' | 'authorized' | 'captured' | 'failed' | 'refunded';
+  paymentMethod?: string;
+  receipt?: string;
+  notes?: Record<string, any>;
+  refundId?: string;
   rawPayload?: any;
   createdAt: Date;
   updatedAt: Date;
@@ -16,10 +20,10 @@ export interface IPayment extends Document {
 
 const paymentSchema = new Schema<IPayment>(
   {
-    orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    razorpayOrderId: { type: String, required: true },
-    razorpayPaymentId: { type: String },
+    orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    razorpayOrderId: { type: String, required: true, index: true },
+    razorpayPaymentId: { type: String, index: true },
     razorpaySignature: { type: String },
     amount: { type: Number, required: true },
     currency: { type: String, default: 'INR' },
@@ -27,7 +31,12 @@ const paymentSchema = new Schema<IPayment>(
       type: String,
       enum: ['created', 'authorized', 'captured', 'failed', 'refunded'],
       default: 'created',
+      index: true,
     },
+    paymentMethod: { type: String },
+    receipt: { type: String },
+    notes: { type: Schema.Types.Mixed },
+    refundId: { type: String },
     rawPayload: { type: Schema.Types.Mixed },
   },
   { timestamps: true }

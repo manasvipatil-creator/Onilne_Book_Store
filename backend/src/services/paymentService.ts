@@ -4,7 +4,7 @@ import { config } from '../config/env.js';
 
 let razorpayInstance: Razorpay | null = null;
 
-// Only initialize real Razorpay SDK if valid credentials are provided (not placeholders)
+// Initialize official Razorpay SDK
 if (
   config.razorpay.keyId &&
   config.razorpay.keySecret &&
@@ -17,57 +17,109 @@ if (
   });
 }
 
+/**
+ * Creates an order in Razorpay
+ * @param amountInPaise integer amount in paise
+ * @param receipt unique receipt identifier
+ * @param notes metadata notes
+ * @param currency currency code, default INR
+ */
 export const createRazorpayOrder = async (
-  amountInPenceOrPaise: number,
+  amountInPaise: number,
   receipt: string,
+  notes: Record<string, any> = {},
   currency: string = 'INR'
 ) => {
   if (!razorpayInstance) {
-    // If Razorpay test keys are not configured yet, generate a structured simulation ID
-    return {
-      id: `order_sim_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-      amount: amountInPenceOrPaise,
-      currency,
-      receipt,
-      status: 'created',
-      isSimulated: true,
-    };
+    throw new Error('Razorpay client is not initialized. Please verify RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.');
   }
 
   return await razorpayInstance.orders.create({
-    amount: Math.round(amountInPenceOrPaise),
+    amount: Math.round(amountInPaise),
     currency,
     receipt,
+    notes,
   });
 };
 
+/**
+ * Verifies Razorpay HMAC SHA256 payment signature using timingSafeEqual
+ */
 export const verifyPaymentSignature = (
   razorpayOrderId: string,
   razorpayPaymentId: string,
   razorpaySignature: string
 ): boolean => {
-  if (razorpayOrderId.startsWith('order_sim_')) {
-    // Simulated order signature validation for developer testing mode
-    return razorpaySignature === `sim_sig_${razorpayOrderId}`;
-  }
-
   if (!config.razorpay.keySecret) {
     return false;
   }
 
-  const generatedSignature = crypto
-    .createHmac('sha256', config.razorpay.keySecret)
-    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-    .digest('hex');
+  try {
+    const payload = `${razorpayOrderId}|${razorpayPaymentId}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', config.razorpay.keySecret)
+      .update(payload)
+      .digest('hex');
 
-  return generatedSignature === razorpaySignature;
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf-8');
+    const signatureBuffer = Buffer.from(razorpaySignature, 'utf-8');
+
+    if (expectedBuffer.length !== signatureBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
+  } catch (err) {
+    console.error('[Signature Verification Error]:', err);
+    return false;
+  }
 };
 
-export const verifyWebhookSignature = (body: string, signature: string): boolean => {
-  if (!config.razorpay.webhookSecret) return false;
-  const expected = crypto
-    .createHmac('sha256', config.razorpay.webhookSecret)
-    .update(body)
-    .digest('hex');
-  return expected === signature;
+/**
+ * Verifies Razorpay Webhook signature using raw payload buffer
+ */
+export const verifyWebhookSignature = (rawBody: string | Buffer, signature: string): boolean => {
+  if (!config.razorpay.webhookSecret) {
+    console.warn('[Webhook Warning]: RAZORPAY_WEBHOOK_SECRET is not configured.');
+    return false;
+  }
+
+  try {
+    const expectedSignature = crypto
+      .createHmac('sha256', config.razorpay.webhookSecret)
+      .update(rawBody)
+      .digest('hex');
+
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf-8');
+    const signatureBuffer = Buffer.from(signature, 'utf-8');
+
+    if (expectedBuffer.length !== signatureBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
+  } catch (err) {
+    console.error('[Webhook Signature Error]:', err);
+    return false;
+  }
+};
+
+/**
+ * Initiates refund through Razorpay Payments API
+ */
+export const refundRazorpayPayment = async (
+  paymentId: string,
+  amountInPaise?: number,
+  notes: Record<string, any> = {}
+) => {
+  if (!razorpayInstance) {
+    throw new Error('Razorpay client is not initialized.');
+  }
+
+  const payload: any = { notes };
+  if (amountInPaise && amountInPaise > 0) {
+    payload.amount = Math.round(amountInPaise);
+  }
+
+  return await (razorpayInstance.payments as any).refund(paymentId, payload);
 };

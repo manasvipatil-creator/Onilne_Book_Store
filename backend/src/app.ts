@@ -10,6 +10,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 import ebookRoutes from './routes/ebookRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 
@@ -34,13 +35,18 @@ export const createApp = () => {
     })
   );
 
-  // Parse JSON
-  app.use(express.json());
+  // Capture raw body for secure Razorpay webhook signature verification
+  app.use(
+    express.json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+      },
+    })
+  );
   app.use(express.urlencoded({ extended: true }));
 
   // Static uploads serving for covers
   app.use('/uploads/covers', express.static(path.resolve(process.cwd(), 'uploads', 'covers')));
-  // Note: /uploads/ebooks is intentionally NOT served statically for private file protection
 
   // Health-check endpoint
   app.get('/api/v1/health', (_req, res) => {
@@ -57,6 +63,7 @@ export const createApp = () => {
   app.use('/api/v1/categories', categoryRoutes);
   app.use('/api/v1/cart', cartRoutes);
   app.use('/api/v1/addresses', addressRoutes);
+  app.use('/api/v1/payment', paymentRoutes);
   app.use('/api/v1', orderRoutes);
   app.use('/api/v1/my-ebooks', ebookRoutes);
   app.use('/api/v1/admin', adminRoutes);
