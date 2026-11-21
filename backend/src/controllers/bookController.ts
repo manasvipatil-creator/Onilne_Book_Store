@@ -28,7 +28,10 @@ export const getBooks = async (req: Request, res: Response): Promise<void> => {
     }
 
     if (category) {
-      const catDoc = await Category.findOne({ slug: category });
+      let catDoc = await Category.findOne({ slug: category });
+      if (!catDoc && (category as string).match(/^[0-9a-fA-F]{24}$/)) {
+        catDoc = await Category.findById(category);
+      }
       if (catDoc) {
         query.categoryId = catDoc._id;
       }
