@@ -5,6 +5,7 @@ import { Address } from '../../types';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Badge } from '../../components/common/Badge';
 import { Skeleton } from '../../components/common/Skeleton';
 import { useToast } from '../../context/ToastContext';
@@ -15,6 +16,7 @@ export const CustomerAddressesPage: React.FC = () => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
   const toast = useToast();
 
   const [form, setForm] = useState({
@@ -98,14 +100,20 @@ export const CustomerAddressesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this address?')) return;
+  const handleDelete = (id: string) => {
+    setAddressToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!addressToDelete) return;
     try {
-      await api.delete(`/addresses/${id}`);
+      await api.delete(`/addresses/${addressToDelete}`);
       toast.info('Address removed');
       fetchAddresses();
     } catch (err: any) {
       toast.error('Failed to delete address');
+    } finally {
+      setAddressToDelete(null);
     }
   };
 
@@ -290,6 +298,18 @@ export const CustomerAddressesPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!addressToDelete}
+        onClose={() => setAddressToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Address?"
+        message="Are you sure you want to delete this delivery address from your profile? This cannot be undone."
+        confirmText="Delete Address"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 };

@@ -19,15 +19,18 @@ import {
 import api from '../services/api';
 import { Book } from '../types';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { BookCard } from '../components/BookCard';
 import { Button, Badge, Card, Skeleton, BookCover } from '../components/common';
 import { handleBookImageError } from '../utils/imageFallbacks';
+import { CheckoutAuthModal } from '../components/CheckoutAuthModal';
 
 export const BookDetailsPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const { success, error } = useToast();
 
   const [book, setBook] = useState<Book | null>(null);
@@ -36,6 +39,7 @@ export const BookDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'description' | 'details' | 'shipping'>('description');
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchBookDetails = async () => {
@@ -108,11 +112,16 @@ export const BookDetailsPage: React.FC = () => {
   };
 
   const handleBuyNow = async () => {
+    if (!book) return;
     setIsAdding(true);
     try {
-      const ok = await addToCart(book._id, quantity);
+      const ok = await addToCart(book._id, quantity, book);
       if (ok) {
-        navigate('/cart');
+        if (!user) {
+          setShowAuthModal(true);
+        } else {
+          navigate('/checkout');
+        }
       }
     } catch {
       error('Failed to proceed with checkout');
@@ -432,6 +441,13 @@ export const BookDetailsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Guest Checkout Auth Modal */}
+      <CheckoutAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        redirectUrl="/checkout"
+      />
     </div>
   );
 };

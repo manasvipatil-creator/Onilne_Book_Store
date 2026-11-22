@@ -4,8 +4,9 @@ import { Trash2, ShoppingBag, ArrowRight, Book, Download, Tag, Check, Sparkles }
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Button, Card, Badge, EmptyState, Input } from '../components/common';
+import { Button, Card, Badge, EmptyState, Input, ConfirmDialog } from '../components/common';
 import { handleBookImageError } from '../utils/imageFallbacks';
+import { CheckoutAuthModal } from '../components/CheckoutAuthModal';
 
 export const CartPage: React.FC = () => {
   const { items, subtotal, totalItems, updateQuantity, removeFromCart, loading } = useCart();
@@ -17,19 +18,9 @@ export const CartPage: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
 
-  if (!user) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-20">
-        <EmptyState
-          icon={<ShoppingBag className="w-8 h-8 text-golden" />}
-          title="Please sign in to view your cart"
-          description="Your selected paperbacks and instant digital downloads are securely saved to your reader account."
-          actionText="Sign In Now"
-          onAction={() => navigate('/login')}
-        />
-      </div>
-    );
-  }
+  // Modals state
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; title: string } | null>(null);
 
   if (items.length === 0 && !loading) {
     return (
@@ -74,6 +65,21 @@ export const CartPage: React.FC = () => {
     }
   };
 
+  const handleProceedToCheckout = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    navigate('/checkout');
+  };
+
+  const handleConfirmRemoveItem = async () => {
+    if (!itemToDelete) return;
+    await removeFromCart(itemToDelete.id);
+    success(`"${itemToDelete.title}" removed from cart`);
+    setItemToDelete(null);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Editorial Header */}
@@ -99,54 +105,59 @@ export const CartPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Side: Items List (8 cols on lg) */}
+        {/* Left Side: Cart Items List (8 cols on lg) */}
         <div className="lg:col-span-8 space-y-4">
           {items.map((item) => (
             <div
               key={item.book.id}
-              className="bg-surface p-4 sm:p-6 rounded-3xl border border-borderMuted shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:shadow-sm transition-all"
+              className="bg-surface rounded-2xl border border-borderMuted p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs hover:border-slate-300 transition-all"
             >
-              <div className="flex items-center space-x-4">
-                <Link to={`/books/${item.book.slug}`} className="flex-shrink-0">
+              <div className="flex items-center space-x-4 w-full sm:w-auto">
+                <Link to={`/books/${item.book.slug || item.book.id}`} className="flex-shrink-0">
                   <img
                     src={item.book.coverImage}
                     alt={item.book.title}
-                    className="w-16 h-22 sm:w-20 sm:h-26 object-cover rounded-xl shadow-xs border border-borderMuted bg-slate-50"
                     onError={handleBookImageError}
+                    className="w-16 h-22 object-cover rounded-xl shadow-xs border border-borderMuted"
                   />
                 </Link>
-
-                <div className="space-y-1">
-                  <Badge
-                    variant={item.book.type === 'ebook' ? 'ebook' : 'paperback'}
-                    size="sm"
-                    icon={item.book.type === 'ebook' ? <Download className="w-2.5 h-2.5" /> : <Book className="w-2.5 h-2.5" />}
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={item.book.type === 'ebook' ? 'ebook' : 'paperback'} size="sm">
+                      {item.book.type === 'ebook' ? 'eBook' : 'Paperback'}
+                    </Badge>
+                  </div>
+                  <Link
+                    to={`/books/${item.book.slug || item.book.id}`}
+                    className="font-serif font-bold text-base text-navy hover:text-golden truncate block"
                   >
-                    {item.book.type === 'ebook' ? 'Digital eBook' : 'Paperback'}
-                  </Badge>
-
-                  <Link to={`/books/${item.book.slug}`}>
-                    <h3 className="font-serif font-bold text-navy text-sm sm:text-base hover:text-golden line-clamp-1 transition-colors">
-                      {item.book.title}
-                    </h3>
+                    {item.book.title}
                   </Link>
                   <p className="text-xs text-textSecondary">by {item.book.author}</p>
-                  <p className="text-sm font-bold text-navy pt-0.5">₹{item.book.price}</p>
+                  <div className="flex items-baseline space-x-2 pt-1">
+                    <span className="font-bold text-navy text-sm">₹{item.book.price}</span>
+                    {item.book.originalPrice > item.book.price && (
+                      <span className="text-xs text-slate-400 line-through">
+                        ₹{item.book.originalPrice}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Quantity Controls & Actions */}
-              <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-5 pt-2 sm:pt-0 border-t sm:border-t-0 border-borderMuted">
+              {/* Quantity Stepper & Subtotal */}
+              <div className="flex items-center justify-between sm:justify-end space-x-6 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-borderMuted">
                 {item.book.type === 'physical' ? (
-                  <div className="flex items-center border border-borderMuted rounded-xl bg-slate-50 shadow-xs">
+                  <div className="flex items-center border border-borderMuted rounded-xl bg-slate-50">
                     <button
                       onClick={() => updateQuantity(item.book.id, item.quantity - 1)}
-                      className="px-3 py-1 text-navy font-bold hover:bg-slate-200 rounded-l-xl transition-colors"
+                      disabled={item.quantity <= 1}
+                      className="px-3 py-1 text-navy font-bold hover:bg-slate-200 rounded-l-xl transition-colors disabled:opacity-40"
                       title="Decrease quantity"
                     >
                       -
                     </button>
-                    <span className="px-3 py-1 font-black text-xs text-navy">{item.quantity}</span>
+                    <span className="px-3 text-xs font-bold text-navy">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.book.id, item.quantity + 1)}
                       className="px-3 py-1 text-navy font-bold hover:bg-slate-200 rounded-r-xl transition-colors"
@@ -166,10 +177,7 @@ export const CartPage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => {
-                    removeFromCart(item.book.id);
-                    success('Item removed from cart');
-                  }}
+                  onClick={() => setItemToDelete({ id: item.book.id, title: item.book.title })}
                   className="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 transition-colors"
                   title="Remove book from cart"
                 >
@@ -258,7 +266,7 @@ export const CartPage: React.FC = () => {
               variant="gold"
               size="lg"
               className="w-full font-black shadow-md flex items-center justify-center space-x-2"
-              onClick={() => navigate('/checkout')}
+              onClick={handleProceedToCheckout}
             >
               <span>Proceed to Checkout</span>
               <ArrowRight className="w-4 h-4" />
@@ -270,6 +278,25 @@ export const CartPage: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Guest Authentication Modal */}
+      <CheckoutAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        redirectUrl="/checkout"
+      />
+
+      {/* Custom Reusable Confirm Dialog for item removal */}
+      <ConfirmDialog
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmRemoveItem}
+        title="Remove Book from Cart?"
+        message={`Are you sure you want to remove "${itemToDelete?.title}" from your reading cart?`}
+        confirmText="Remove Item"
+        cancelText="Keep in Cart"
+        variant="danger"
+      />
     </div>
   );
 };

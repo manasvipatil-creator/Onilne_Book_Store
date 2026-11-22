@@ -10,13 +10,13 @@ import { ToastProvider } from './context/ToastContext';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
-          <ToastProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <CartProvider>
             <App />
-          </ToastProvider>
-        </CartProvider>
-      </AuthProvider>
+          </CartProvider>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

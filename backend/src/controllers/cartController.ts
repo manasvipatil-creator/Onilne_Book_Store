@@ -193,3 +193,55 @@ export const clearCart = async (req: AuthenticatedRequest, res: Response): Promi
     res.status(500).json({ success: false, message: 'Failed to clear cart' });
   }
 };
+
+export const mergeCart = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    const { items = [] } = req.body; // Array of { bookId, quantity }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      res.json({ success: true, message: 'No guest items to merge' });
+      return;
+    }
+
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+      cart = new Cart({ userId, items: [] });
+    }
+
+    for (const guestItem of items) {
+      const { bookId, quantity = 1 } = guestItem;
+      if (!bookId) continue;
+
+      const book = await Book.findById(bookId);
+      if (!book || book.status !== 'published') continue;
+
+      const existingIndex = cart.items.findIndex(
+        (i) => i.bookId.toString() === bookId.toString()
+      );
+
+      if (book.type === 'ebook') {
+        if (existingIndex === -1) {
+          cart.items.push({ bookId: new mongoose.Types.ObjectId(bookId), quantity: 1 });
+        }
+      } else {
+        const addQty = Math.max(1, parseInt(quantity, 10) || 1);
+        const maxStock = book.physical?.stock ?? 0;
+        if (maxStock <= 0) continue;
+
+        if (existingIndex > -1) {
+          const newQty = Math.min(cart.items[existingIndex].quantity + addQty, maxStock);
+          cart.items[existingIndex].quantity = newQty;
+        } else {
+          const newQty = Math.min(addQty, maxStock);
+          cart.items.push({ bookId: new mongoose.Types.ObjectId(bookId), quantity: newQty });
+        }
+      }
+    }
+
+    await cart.save();
+    res.json({ success: true, message: 'Cart merged successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to merge cart', error: error.message });
+  }
+};

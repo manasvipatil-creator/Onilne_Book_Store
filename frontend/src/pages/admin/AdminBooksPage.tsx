@@ -7,6 +7,7 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Skeleton } from '../../components/common/Skeleton';
 import { useToast } from '../../context/ToastContext';
 
@@ -19,6 +20,7 @@ export const AdminBooksPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState<{ id: string; title: string } | null>(null);
   const toast = useToast();
 
   const [form, setForm] = useState<any>({
@@ -131,14 +133,20 @@ export const AdminBooksPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Delete "${title}" permanently from inventory?`)) return;
+  const handleDelete = (id: string, title: string) => {
+    setBookToDelete({ id, title });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!bookToDelete) return;
     try {
-      await api.delete(`/admin/books/${id}`);
-      toast.info(`"${title}" deleted from catalog`);
+      await api.delete(`/admin/books/${bookToDelete.id}`);
+      toast.info(`"${bookToDelete.title}" deleted from catalog`);
       fetchBooks();
     } catch (err: any) {
       toast.error('Failed to delete book');
+    } finally {
+      setBookToDelete(null);
     }
   };
 
@@ -454,6 +462,18 @@ export const AdminBooksPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!bookToDelete}
+        onClose={() => setBookToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Book Permanently?"
+        message={`Are you sure you want to permanently delete "${bookToDelete?.title}" from catalog inventory? This action cannot be undone.`}
+        confirmText="Delete Book"
+        cancelText="Keep Book"
+        variant="danger"
+      />
     </div>
   );
 };

@@ -443,13 +443,13 @@ export const HomePage: React.FC = () => {
         />
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
             {[1, 2, 3, 4].map((i) => (
               <BookCardSkeleton key={i} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
             {bestSellers.slice(0, 4).map((book) => (
               <BookCard key={book._id} book={book} />
             ))}
@@ -466,13 +466,13 @@ export const HomePage: React.FC = () => {
         />
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
             {[1, 2, 3, 4].map((i) => (
               <BookCardSkeleton key={i} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
             {featuredBooks.slice(0, 4).map((book) => (
               <BookCard key={book._id} book={book} />
             ))}
@@ -533,13 +533,13 @@ export const HomePage: React.FC = () => {
         />
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
             {[1, 2, 3, 4].map((i) => (
               <BookCardSkeleton key={i} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
             {newArrivals.slice(0, 4).map((book) => (
               <BookCard key={book._id} book={book} />
             ))}

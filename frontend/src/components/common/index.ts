@@ -3,6 +3,7 @@ export * from './Badge';
 export * from './Card';
 export * from './Input';
 export * from './Modal';
+export * from './ConfirmDialog';
 export * from './Skeleton';
 export * from './EmptyState';
 export * from './BookCover';

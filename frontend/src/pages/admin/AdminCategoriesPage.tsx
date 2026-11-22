@@ -6,6 +6,7 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
 
 export const AdminCategoriesPage: React.FC = () => {
@@ -14,6 +15,7 @@ export const AdminCategoriesPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null);
   const toast = useToast();
 
   const [form, setForm] = useState({
@@ -85,14 +87,20 @@ export const AdminCategoriesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete category "${name}"? Please ensure no books are currently assigned.`)) return;
+  const handleDelete = (id: string, name: string) => {
+    setCategoryToDelete({ id, name });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!categoryToDelete) return;
     try {
-      await api.delete(`/admin/categories/${id}`);
-      toast.info(`Category "${name}" deleted`);
+      await api.delete(`/admin/categories/${categoryToDelete.id}`);
+      toast.info(`Category "${categoryToDelete.name}" deleted`);
       fetchCats();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to delete category');
+    } finally {
+      setCategoryToDelete(null);
     }
   };
 
@@ -238,6 +246,18 @@ export const AdminCategoriesPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!categoryToDelete}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Category?"
+        message={`Delete category "${categoryToDelete?.name}"? Please ensure no books are currently assigned to this category before deleting.`}
+        confirmText="Delete Category"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 };

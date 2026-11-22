@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, User, Mail, Phone, Lock, AlertCircle, Sparkles, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +22,11 @@ export const RegisterPage: React.FC = () => {
   const { login } = useAuth();
   const { success } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get('redirect');
+  const from = redirectParam || (location.state as any)?.from?.pathname || '/';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -54,7 +59,8 @@ export const RegisterPage: React.FC = () => {
       if (res.data.success) {
         login(res.data.data.token, res.data.data.user);
         success('Account created successfully! Welcome to BookStore.');
-        navigate('/');
+        const targetPath = redirectParam || (location.state as any)?.from?.pathname;
+        navigate(targetPath || '/', { replace: true });
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -184,7 +190,10 @@ export const RegisterPage: React.FC = () => {
           <div className="pt-4 border-t border-borderMuted text-center">
             <p className="text-xs text-textSecondary">
               Already have an account?{' '}
-              <Link to="/login" className="font-bold text-navy hover:text-golden transition-colors underline">
+              <Link
+                to={redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : '/login'}
+                className="font-bold text-navy hover:text-golden transition-colors underline"
+              >
                 Sign in here
               </Link>
             </p>

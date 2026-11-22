@@ -18,7 +18,8 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: b
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const fullPath = location.pathname + location.search;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(fullPath)}`} state={{ from: location }} replace />;
   }
 
   if (adminOnly && user.role !== 'admin') {

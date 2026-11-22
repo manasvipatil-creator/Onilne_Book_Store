@@ -18,7 +18,9 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || '/';
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get('redirect');
+  const from = redirectParam || (location.state as any)?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +32,13 @@ export const LoginPage: React.FC = () => {
       if (res.data.success) {
         login(res.data.data.token, res.data.data.user);
         success(`Welcome back, ${res.data.data.user.name}!`);
-        if (res.data.data.user.role === 'admin') {
-          navigate('/admin');
+        const targetPath = redirectParam || (location.state as any)?.from?.pathname;
+        if (targetPath) {
+          navigate(targetPath, { replace: true });
+        } else if (res.data.data.user.role === 'admin') {
+          navigate('/admin', { replace: true });
         } else {
-          navigate(from);
+          navigate('/', { replace: true });
         }
       }
     } catch (err: any) {
@@ -125,7 +130,10 @@ export const LoginPage: React.FC = () => {
           <div className="pt-4 border-t border-borderMuted text-center">
             <p className="text-xs text-textSecondary">
               Don't have an account yet?{' '}
-              <Link to="/register" className="font-bold text-navy hover:text-golden transition-colors underline">
+              <Link
+                to={redirectParam ? `/register?redirect=${encodeURIComponent(redirectParam)}` : '/register'}
+                className="font-bold text-navy hover:text-golden transition-colors underline"
+              >
                 Register free
               </Link>
             </p>

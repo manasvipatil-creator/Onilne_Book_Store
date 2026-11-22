@@ -51,11 +51,11 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="group relative bg-surface rounded-2xl border border-borderMuted hover:border-navy/20 p-3.5 sm:p-4 shadow-soft hover:shadow-elevated transition-all duration-300 flex flex-col h-full"
+      className="group relative bg-surface rounded-2xl border border-borderMuted hover:border-navy/20 p-2.5 sm:p-4 shadow-soft hover:shadow-elevated transition-all duration-300 flex flex-col h-full"
     >
       <Link to={`/books/${book.slug || book._id}`} className="flex flex-col flex-grow">
         {/* Book Cover Container with fixed 3/4 aspect ratio */}
-        <div className="relative mb-3.5 overflow-hidden rounded-xl bg-slate-100">
+        <div className="relative mb-2.5 sm:mb-3.5 overflow-hidden rounded-xl bg-slate-100">
           <div className="transition-transform duration-300 group-hover:scale-105">
             <BookCover
               src={book.coverImage}
@@ -66,27 +66,27 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
           </div>
 
           {/* Badges container */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start z-10 pointer-events-none">
+          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex flex-col gap-1 items-start z-10 pointer-events-none">
             {book.type === 'ebook' ? (
-              <Badge variant="ebook" size="sm">
+              <Badge variant="ebook" size="sm" className="text-[9px] sm:text-[11px] px-1.5 py-0.5">
                 Instant eBook
               </Badge>
             ) : (
-              <Badge variant="paperback" size="sm">
+              <Badge variant="paperback" size="sm" className="text-[9px] sm:text-[11px] px-1.5 py-0.5">
                 Paperback
               </Badge>
             )}
 
             {book.isBestSeller && (
-              <Badge variant="bestseller" size="sm">
+              <Badge variant="bestseller" size="sm" className="text-[9px] sm:text-[11px] px-1.5 py-0.5">
                 Bestseller
               </Badge>
             )}
           </div>
 
           {discountPercent > 0 && (
-            <div className="absolute top-2 right-2 z-10 pointer-events-none">
-              <Badge variant="discount" size="sm">
+            <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10 pointer-events-none">
+              <Badge variant="discount" size="sm" className="text-[9px] sm:text-[11px] px-1.5 py-0.5">
                 {discountPercent}% OFF
               </Badge>
             </div>
@@ -96,29 +96,29 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
         {/* Content Area - Fixed Clamps for Equal Heights */}
         <div className="flex flex-col flex-grow">
           {/* Category Tag */}
-          <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-1">
+          <span className="text-[9px] sm:text-[10px] font-bold text-textSecondary uppercase tracking-wider mb-0.5 sm:mb-1 truncate">
             {typeof book.categoryId === 'object' && book.categoryId !== null
               ? (book.categoryId as any).name
               : 'Literature'}
           </span>
 
           {/* Title - exactly 2 lines clamped */}
-          <h3 className="font-serif font-bold text-navy text-sm sm:text-base leading-snug line-clamp-2 mb-1 group-hover:text-golden transition-colors min-h-[2.5rem]">
+          <h3 className="font-serif font-bold text-navy text-xs sm:text-base leading-snug line-clamp-2 mb-1 group-hover:text-golden transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
             {book.title}
           </h3>
 
           {/* Author - exactly 1 line clamped */}
-          <p className="text-xs text-textSecondary line-clamp-1 mb-3">
+          <p className="text-[11px] sm:text-xs text-textSecondary line-clamp-1 mb-2 sm:mb-3">
             by {book.author}
           </p>
 
           {/* Price display */}
-          <div className="flex items-baseline space-x-2 mt-auto pb-3">
-            <span className="text-base sm:text-lg font-bold text-navy">
+          <div className="flex items-baseline space-x-1.5 sm:space-x-2 mt-auto pb-2 sm:pb-3">
+            <span className="text-sm sm:text-lg font-bold text-navy">
               ₹{book.pricing.price}
             </span>
             {book.pricing.originalPrice > book.pricing.price && (
-              <span className="text-xs text-textSecondary line-through font-normal">
+              <span className="text-[10px] sm:text-xs text-textSecondary line-through font-normal">
                 ₹{book.pricing.originalPrice}
               </span>
             )}
@@ -132,7 +132,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
           type="button"
           onClick={handleAddToCart}
           disabled={isOutOfStock}
-          className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-2 active:scale-95 ${
+          className={`w-full py-1.5 sm:py-2 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center space-x-1.5 sm:space-x-2 active:scale-95 ${
             isOutOfStock
               ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
               : isAdding

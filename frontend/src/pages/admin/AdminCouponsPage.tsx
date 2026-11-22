@@ -5,6 +5,7 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
 
 export const AdminCouponsPage: React.FC = () => {
@@ -12,6 +13,7 @@ export const AdminCouponsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [couponToDelete, setCouponToDelete] = useState<{ id: string; code: string } | null>(null);
   const toast = useToast();
 
   const [form, setForm] = useState({
@@ -56,14 +58,20 @@ export const AdminCouponsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, code: string) => {
-    if (!window.confirm(`Delete coupon code ${code}?`)) return;
+  const handleDelete = (id: string, code: string) => {
+    setCouponToDelete({ id, code });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!couponToDelete) return;
     try {
-      await api.delete(`/admin/coupons/${id}`);
-      toast.info(`Coupon ${code} removed`);
+      await api.delete(`/admin/coupons/${couponToDelete.id}`);
+      toast.info(`Coupon ${couponToDelete.code} removed`);
       fetchCoupons();
     } catch (err: any) {
       toast.error('Failed to delete coupon');
+    } finally {
+      setCouponToDelete(null);
     }
   };
 
@@ -235,6 +243,18 @@ export const AdminCouponsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!couponToDelete}
+        onClose={() => setCouponToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Coupon?"
+        message={`Are you sure you want to delete promo coupon "${couponToDelete?.code}"? Users will no longer be able to use it at checkout.`}
+        confirmText="Delete Coupon"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 };
