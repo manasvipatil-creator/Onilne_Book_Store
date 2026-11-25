@@ -115,15 +115,15 @@ export const AdminCategoriesPage: React.FC = () => {
             Organize literary genres, topics & curated storefront collections
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
+        <button
           onClick={handleOpenAdd}
-          className="flex items-center gap-1.5 self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-navy text-white hover:bg-navy-light shadow-sm hover:shadow transition-all duration-200 active:scale-[0.98] self-start sm:self-auto group"
         >
-          <Plus className="w-4 h-4 text-golden" />
+          <span className="w-5 h-5 rounded-lg bg-golden/20 flex items-center justify-center text-golden group-hover:bg-golden group-hover:text-navy transition-colors">
+            <Plus className="w-3.5 h-3.5" />
+          </span>
           <span>Add Category</span>
-        </Button>
+        </button>
       </div>
 
       <div className="bg-surface rounded-2xl border border-borderMuted shadow-soft overflow-hidden">

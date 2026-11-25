@@ -12,8 +12,11 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 export const getAdminStats = async (_req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const totalBooks = await Book.countDocuments();
+    const physicalBooks = await Book.countDocuments({ type: 'physical' });
+    const digitalBooks = await Book.countDocuments({ type: 'ebook' });
     const totalOrders = await Order.countDocuments();
     const totalCustomers = await User.countDocuments({ role: 'customer' });
+    const totalCoupons = await Coupon.countDocuments();
 
     const paidOrders = await Order.find({ 'payment.status': 'Paid' });
     const totalSales = paidOrders.reduce((sum, ord) => sum + ord.pricing.finalTotal, 0);
@@ -31,24 +34,50 @@ export const getAdminStats = async (_req: AuthenticatedRequest, res: Response): 
     const recentOrders = await Order.find()
       .populate('userId', 'name email mobile')
       .sort({ createdAt: -1 })
-      .limit(6);
+      .limit(8);
 
     const recentCustomers = await User.find({ role: 'customer' })
       .select('-passwordHash')
       .sort({ createdAt: -1 })
-      .limit(6);
+      .limit(8);
+
+    // Dynamic daily sales breakdown for recent 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const salesHistory = await Order.aggregate([
+      {
+        $match: {
+          'payment.status': 'Paid',
+          createdAt: { $gte: sevenDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          dailyRevenue: { $sum: '$pricing.finalTotal' },
+          orderCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
 
     res.json({
       success: true,
       data: {
         stats: {
           totalBooks,
+          physicalBooks,
+          digitalBooks,
           totalOrders,
           totalCustomers,
           totalSales,
           pendingOrders,
+          totalCoupons,
           lowStockCount: lowStockBooks.length,
         },
+        salesHistory,
         lowStockBooks,
         recentOrders,
         recentCustomers,

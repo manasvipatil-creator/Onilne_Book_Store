@@ -153,8 +153,8 @@ export const CheckoutPage: React.FC = () => {
 
       const { orderId, orderNumber, razorpayOrderId, amount, keyId, isSimulated } = checkoutRes.data.data;
 
-      // Check if standard Razorpay checkout modal is active
-      if (window.Razorpay && !isSimulated && keyId && !keyId.includes('placeholder')) {
+      // Initialize Razorpay Standard Checkout modal with real test credentials
+      if (window.Razorpay && keyId && !keyId.includes('placeholder')) {
         const options = {
           key: keyId,
           amount: amount,
@@ -176,8 +176,17 @@ export const CheckoutPage: React.FC = () => {
                 navigate(`/order-success/${orderId}`);
               }
             } catch (verErr: any) {
-              toastError(verErr.response?.data?.message || 'Payment verification failed.');
+              const errMsg = verErr.response?.data?.message || 'Payment verification failed.';
+              setError(errMsg);
+              toastError(errMsg);
             }
+          },
+          modal: {
+            ondismiss: () => {
+              setError('Payment was cancelled by the user. You can retry when ready.');
+              toastError('Payment cancelled.');
+              setLoading(false);
+            },
           },
           prefill: {
             name: user?.name,
@@ -190,23 +199,15 @@ export const CheckoutPage: React.FC = () => {
         };
 
         const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', (resp: any) => {
+          const failMsg = resp.error?.description || 'Payment failed. Please retry.';
+          setError(failMsg);
+          toastError(failMsg);
+          setLoading(false);
+        });
         rzp.open();
       } else {
-        // High-fidelity development test mode verification
-        const simPaymentId = `pay_sim_${Date.now()}`;
-        const simSignature = `sim_sig_${razorpayOrderId}`;
-
-        const verifyRes = await api.post('/payments/verify', {
-          orderId,
-          razorpayOrderId,
-          razorpayPaymentId: simPaymentId,
-          razorpaySignature: simSignature,
-        });
-
-        if (verifyRes.data.success) {
-          await fetchCart();
-          navigate(`/order-success/${orderId}`);
-        }
+        throw new Error('Razorpay SDK failed to load or API Key is missing.');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Checkout failed');
