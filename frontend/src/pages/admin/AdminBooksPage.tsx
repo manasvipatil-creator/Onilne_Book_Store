@@ -328,121 +328,189 @@ export const AdminBooksPage: React.FC = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editId ? 'Edit Book Details' : 'Add New Book to Inventory'}
+        description="Enter catalog information, pricing, stock and publishing metadata."
+        maxWidth="3xl"
       >
-        <form onSubmit={handleSave} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Book Title"
-              required
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-            <Input
-              label="Author Name"
-              required
-              value={form.author}
-              onChange={(e) => setForm({ ...form, author: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-textPrimary">Description</label>
-            <textarea
-              rows={3}
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 border border-borderMuted rounded-xl text-xs sm:text-sm bg-background/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy/20"
-              placeholder="Book summary, themes, author notes..."
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-textPrimary">Category</label>
-              <select
-                value={form.categoryId}
-                onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-                className="w-full px-3 py-2 border border-borderMuted rounded-xl text-xs sm:text-sm bg-background/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy/20"
-              >
-                {categories.map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+        <form onSubmit={handleSave} className="space-y-5 max-h-[78vh] overflow-y-auto px-1 pr-2">
+          {/* Section 1: Basic Information */}
+          <div className="bg-slate-50/70 p-4 rounded-2xl border border-borderMuted space-y-3.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-golden inline-block"></span>
+              Basic Book Details
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <Input
+                label="Book Title"
+                placeholder="e.g. To Kill a Mockingbird"
+                required
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
+              <Input
+                label="Author Name"
+                placeholder="e.g. Harper Lee"
+                required
+                value={form.author}
+                onChange={(e) => setForm({ ...form, author: e.target.value })}
+              />
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-textPrimary">Product Type</label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="w-full px-3 py-2 border border-borderMuted rounded-xl text-xs sm:text-sm bg-background/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy/20"
-              >
-                <option value="physical">Physical Book</option>
-                <option value="ebook">Digital eBook</option>
-              </select>
+              <label className="block text-xs font-semibold text-textPrimary">Description</label>
+              <textarea
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="w-full px-3 py-2 border border-borderMuted rounded-xl text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-navy/20"
+                placeholder="Book summary, themes, author notes..."
+              />
+            </div>
+          </div>
+
+          {/* Section 2: Format, Category & Inventory */}
+          <div className="bg-slate-50/70 p-4 rounded-2xl border border-borderMuted space-y-3.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-golden inline-block"></span>
+              Catalog & Pricing
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-textPrimary">Category</label>
+                <select
+                  value={form.categoryId}
+                  onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-borderMuted rounded-xl text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-navy/20 font-medium text-navy"
+                >
+                  {categories.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-textPrimary">Product Type</label>
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-borderMuted rounded-xl text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-navy/20 font-medium text-navy"
+                >
+                  <option value="physical">Physical Book</option>
+                  <option value="ebook">Digital eBook</option>
+                </select>
+              </div>
+
+              <Input
+                label="Inventory Stock"
+                type="number"
+                disabled={form.type === 'ebook'}
+                value={form.stock}
+                onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
+                helperText={form.type === 'ebook' ? 'Unlimited for digital' : undefined}
+              />
             </div>
 
-            <Input
-              label="Inventory Stock"
-              type="number"
-              disabled={form.type === 'ebook'}
-              value={form.stock}
-              onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
-              helperText={form.type === 'ebook' ? 'Unlimited for digital' : undefined}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Selling Price (₹)"
-              type="number"
-              required
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-            />
-            <Input
-              label="Original MRP Price (₹)"
-              type="number"
-              required
-              value={form.originalPrice}
-              onChange={(e) => setForm({ ...form, originalPrice: Number(e.target.value) })}
-            />
-          </div>
-
-          <Input
-            label="Cover Image URL"
-            type="text"
-            required
-            value={form.coverImage}
-            onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
-            leftIcon={<ImageIcon className="w-4 h-4 text-textSecondary" />}
-          />
-
-          <div className="flex flex-wrap gap-6 pt-2">
-            <label className="flex items-center space-x-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={form.isFeatured}
-                onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
-                className="rounded text-navy focus:ring-navy w-4 h-4 cursor-pointer"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <Input
+                label="Selling Price (₹)"
+                type="number"
+                required
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
               />
-              <span className="text-xs font-semibold text-navy">Mark as Featured Title</span>
-            </label>
-
-            <label className="flex items-center space-x-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={form.isBestSeller}
-                onChange={(e) => setForm({ ...form, isBestSeller: e.target.checked })}
-                className="rounded text-navy focus:ring-navy w-4 h-4 cursor-pointer"
+              <Input
+                label="Original MRP Price (₹)"
+                type="number"
+                required
+                value={form.originalPrice}
+                onChange={(e) => setForm({ ...form, originalPrice: Number(e.target.value) })}
               />
-              <span className="text-xs font-semibold text-navy">Mark as Best Seller</span>
-            </label>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-borderMuted">
+          {/* Section 3: Publishing Metadata (Publisher, ISBN, Language, Pages) */}
+          <div className="bg-slate-50/70 p-4 rounded-2xl border border-borderMuted space-y-3.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-golden inline-block"></span>
+              Publishing Specifications
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <Input
+                label="Publisher"
+                type="text"
+                placeholder="e.g. J. B. Lippincott & Co."
+                value={form.publisher}
+                onChange={(e) => setForm({ ...form, publisher: e.target.value })}
+              />
+              <Input
+                label="ISBN Number"
+                type="text"
+                placeholder="e.g. 9780061120084"
+                value={form.isbn}
+                onChange={(e) => setForm({ ...form, isbn: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <Input
+                label="Language"
+                type="text"
+                placeholder="e.g. English"
+                value={form.language}
+                onChange={(e) => setForm({ ...form, language: e.target.value })}
+              />
+              <Input
+                label="Page Count"
+                type="number"
+                placeholder="e.g. 281"
+                value={form.pages}
+                onChange={(e) => setForm({ ...form, pages: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          {/* Section 4: Cover Image & Promos */}
+          <div className="bg-slate-50/70 p-4 rounded-2xl border border-borderMuted space-y-3.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-navy flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-golden inline-block"></span>
+              Media & Promotion
+            </h4>
+            <Input
+              label="Cover Image URL"
+              type="text"
+              required
+              placeholder="https://..."
+              value={form.coverImage}
+              onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
+              leftIcon={<ImageIcon className="w-4 h-4 text-textSecondary" />}
+            />
+
+            <div className="flex flex-wrap gap-6 pt-1">
+              <label className="flex items-center space-x-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.isFeatured}
+                  onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
+                  className="rounded text-navy focus:ring-navy w-4 h-4 cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-navy">Mark as Featured Title</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.isBestSeller}
+                  onChange={(e) => setForm({ ...form, isBestSeller: e.target.checked })}
+                  className="rounded text-navy focus:ring-navy w-4 h-4 cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-navy">Mark as Best Seller</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-borderMuted">
             <Button
               type="button"
               variant="outline"

@@ -43,11 +43,11 @@ export const AdminLayout: React.FC = () => {
       {/* Mobile Top Header */}
       <header className="lg:hidden bg-navy text-white px-4 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-md">
         <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-golden/20 border border-golden/30 flex items-center justify-center text-golden font-bold">
-            <BookOpen className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-surface/10 border border-golden/30 flex items-center justify-center p-1">
+            <img src="/bookora-logo.png" alt="BOOKORA Logo" className="w-full h-full object-contain" />
           </div>
           <div>
-            <h2 className="font-serif font-bold text-sm tracking-tight text-white">Admin Console</h2>
+            <h2 className="font-serif font-bold text-sm tracking-tight text-white">BOOKORA Admin</h2>
             <p className="text-[10px] text-gray-400">Online Book Store</p>
           </div>
         </div>
@@ -63,25 +63,24 @@ export const AdminLayout: React.FC = () => {
 
       {/* Admin Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[#102A43] to-navy text-white flex-shrink-0 flex flex-col justify-between p-5 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
-          mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[#102A43] to-navy text-white flex-shrink-0 flex flex-col justify-between p-5 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+          }`}
       >
         <div className="space-y-6">
           {/* Logo / Header */}
           <div className="flex items-center justify-between pb-5 border-b border-white/10">
             <Link to="/admin" className="flex items-center space-x-3 group">
-              <div className="w-10 h-10 rounded-xl bg-golden/20 border border-golden/40 flex items-center justify-center text-golden font-bold shadow-soft group-hover:scale-105 transition-transform">
-                <BookOpen className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-surface/10 border border-golden/30 flex items-center justify-center p-1.5 shadow-soft group-hover:scale-105 transition-transform">
+                <img src="/bookora-logo.png" alt="BOOKORA Logo" className="w-full h-full object-contain filter drop-shadow" />
               </div>
               <div>
                 <h3 className="font-serif font-bold text-base text-white tracking-tight flex items-center gap-1.5">
-                  Admin Console
+                  BOOK<span className="text-golden">ORA</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-golden text-navy font-bold font-sans">
                     PRO
                   </span>
                 </h3>
-                <p className="text-[11px] text-gray-400">Online Book Store Management</p>
+                <p className="text-[11px] text-gray-400">Store Management Console</p>
               </div>
             </Link>
             <button
@@ -118,10 +117,9 @@ export const AdminLayout: React.FC = () => {
                 end={item.end}
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                    isActive
-                      ? 'bg-golden text-navy font-bold shadow-soft'
-                      : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                  `flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${isActive
+                    ? 'bg-golden text-navy font-bold shadow-soft'
+                    : 'text-gray-300 hover:bg-white/10 hover:text-white'
                   }`
                 }
               >

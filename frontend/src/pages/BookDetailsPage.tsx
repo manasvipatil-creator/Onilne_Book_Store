@@ -29,7 +29,7 @@ import { CheckoutAuthModal } from '../components/CheckoutAuthModal';
 export const BookDetailsPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { addToCart, items } = useCart();
   const { user } = useAuth();
   const { success, error } = useToast();
 
@@ -38,8 +38,11 @@ export const BookDetailsPage: React.FC = () => {
   const [quantity, setQuantity] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [justAdded, setJustAdded] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'description' | 'details' | 'shipping'>('description');
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+
+  const isInCart = book ? items.some((item) => (item.book.id || (item.book as any)._id) === book._id) : false;
 
   useEffect(() => {
     const fetchBookDetails = async () => {
@@ -102,7 +105,9 @@ export const BookDetailsPage: React.FC = () => {
     try {
       const ok = await addToCart(book._id, quantity);
       if (ok) {
+        setJustAdded(true);
         success(`"${book.title}" added to your shopping cart!`);
+        setTimeout(() => setJustAdded(false), 2500);
       }
     } catch {
       error('Failed to add book to cart');
@@ -145,11 +150,11 @@ export const BookDetailsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         {/* Left Column: Large Book Cover (5 cols) */}
         <div className="lg:col-span-5 relative">
-          <div className="w-full rounded-3xl overflow-hidden shadow-elevated border border-borderMuted bg-surface p-2">
+          <div className="w-full rounded-3xl overflow-hidden shadow-elevated border border-borderMuted bg-slate-50 p-4 flex items-center justify-center">
             <BookCover
               src={book.coverImage}
               alt={book.title}
-              aspectRatio="aspect-[3/4]"
+              aspectRatio="aspect-[2/3]"
               loading="eager"
             />
           </div>
@@ -251,13 +256,13 @@ export const BookDetailsPage: React.FC = () => {
               <Button
                 variant="primary"
                 size="lg"
-                icon={<ShoppingCart className="w-4 h-4 text-golden" />}
+                icon={justAdded || isInCart ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <ShoppingCart className="w-4 h-4 text-golden" />}
                 isLoading={isAdding}
                 disabled={book.type === 'physical' && (book.physical?.stock ?? 0) <= 0}
                 onClick={handleAddToCart}
-                className="w-full"
+                className={`w-full font-bold transition-all ${justAdded || isInCart ? 'border-emerald-500/50 text-emerald-300' : ''}`}
               >
-                Add to Cart
+                {justAdded || isInCart ? 'Added to Cart' : 'Add to Cart'}
               </Button>
 
               <Button
@@ -339,25 +344,22 @@ export const BookDetailsPage: React.FC = () => {
         <div className="flex items-center space-x-6 border-b border-borderMuted pb-4 mb-6">
           <button
             onClick={() => setActiveTab('description')}
-            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${
-              activeTab === 'description' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
-            }`}
+            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${activeTab === 'description' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
+              }`}
           >
             Description
           </button>
           <button
             onClick={() => setActiveTab('details')}
-            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${
-              activeTab === 'details' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
-            }`}
+            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${activeTab === 'details' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
+              }`}
           >
             Product Details
           </button>
           <button
             onClick={() => setActiveTab('shipping')}
-            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${
-              activeTab === 'shipping' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
-            }`}
+            className={`font-serif text-lg font-bold pb-2 transition-colors relative ${activeTab === 'shipping' ? 'text-navy border-b-2 border-golden' : 'text-slate-400 hover:text-navy'
+              }`}
           >
             Shipping & Returns
           </button>

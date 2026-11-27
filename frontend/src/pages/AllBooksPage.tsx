@@ -96,11 +96,10 @@ export const AllBooksPage: React.FC = () => {
           ].map((item) => (
             <label
               key={item.id}
-              className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
-                selectedType === item.id
-                  ? 'border-navy bg-navy-subtle text-navy'
-                  : 'border-transparent text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${selectedType === item.id
+                ? 'border-navy bg-navy-subtle text-navy'
+                : 'border-transparent text-slate-600 hover:bg-slate-50'
+                }`}
             >
               <div className="flex items-center space-x-2.5">
                 <input
@@ -122,11 +121,10 @@ export const AllBooksPage: React.FC = () => {
         <h4 className="text-xs font-bold uppercase tracking-wider text-navy">Genre / Category</h4>
         <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
           <label
-            className={`flex items-center justify-between p-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
-              selectedCategory === ''
-                ? 'bg-navy-subtle text-navy font-bold'
-                : 'text-slate-600 hover:bg-slate-50'
-            }`}
+            className={`flex items-center justify-between p-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${selectedCategory === ''
+              ? 'bg-navy-subtle text-navy font-bold'
+              : 'text-slate-600 hover:bg-slate-50'
+              }`}
           >
             <div className="flex items-center space-x-2.5">
               <input
@@ -142,11 +140,10 @@ export const AllBooksPage: React.FC = () => {
           {categories.map((c) => (
             <label
               key={c._id}
-              className={`flex items-center justify-between p-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
-                selectedCategory === c.slug
-                  ? 'bg-navy-subtle text-navy'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`flex items-center justify-between p-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${selectedCategory === c.slug
+                ? 'bg-navy-subtle text-navy'
+                : 'text-slate-600 hover:bg-slate-50'
+                }`}
             >
               <div className="flex items-center space-x-2.5">
                 <input

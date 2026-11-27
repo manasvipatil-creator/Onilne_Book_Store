@@ -9,15 +9,19 @@ import {
   ChevronRight,
   ShieldCheck,
   BookOpen,
+  Heart,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../context/WishlistContext';
 
 export const AccountLayout: React.FC = () => {
   const { user, logout } = useAuth();
+  const { totalWishlist } = useWishlist();
   const navigate = useNavigate();
 
   const navItems = [
     { label: 'My Orders & Tracking', path: '/account', icon: ShoppingBag, end: true, badge: null },
+    { label: 'My Wishlist', path: '/wishlist', icon: Heart, badge: totalWishlist > 0 ? `${totalWishlist}` : null },
     { label: 'My Digital eBooks', path: '/account/ebooks', icon: Download, badge: 'Instant' },
     { label: 'Delivery Addresses', path: '/account/addresses', icon: MapPin, badge: null },
     { label: 'Personal Profile', path: '/account/profile', icon: User, badge: null },

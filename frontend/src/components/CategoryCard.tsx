@@ -11,8 +11,8 @@ import {
   Landmark,
   Baby,
   Trophy,
-  ArrowRight,
-  Sparkles,
+  Heart,
+  Grid,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Category } from '../types';
@@ -23,10 +23,10 @@ interface CategoryCardProps {
   count?: number;
 }
 
-// Map slug/name to distinctive Lucide icon
 export const getCategoryIcon = (slugOrName: string) => {
   const key = slugOrName.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
+  if (key.includes('health') || key.includes('wellness') || key.includes('fitness')) return Heart;
   if (key.includes('non-fiction') || key.includes('news')) return Newspaper;
   if (key.includes('fiction')) return BookOpen;
   if (key.includes('tech') || key.includes('code') || key.includes('software')) return Cpu;
@@ -52,12 +52,12 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     return (
       <Link
         to={`/categories/${category.slug || category._id}`}
-        className="group inline-flex items-center space-x-2.5 px-4 py-2.5 rounded-2xl bg-surface border border-borderMuted hover:border-golden/40 hover:bg-navy/5 transition-all duration-200 shadow-soft hover:shadow-md flex-shrink-0"
+        className="group inline-flex items-center space-x-2 px-3.5 py-2 rounded-full bg-surface border border-borderMuted hover:border-golden/40 hover:bg-golden/5 transition-all duration-200 shadow-xs flex-shrink-0"
       >
-        <div className="w-7 h-7 rounded-lg bg-navy/5 text-navy group-hover:bg-navy group-hover:text-golden flex items-center justify-center transition-colors">
-          <IconComponent className="w-3.5 h-3.5 transition-transform duration-200 group-hover:scale-110" />
+        <div className="w-6 h-6 rounded-full bg-golden/10 text-golden group-hover:bg-golden group-hover:text-navy flex items-center justify-center transition-colors">
+          <IconComponent className="w-3.5 h-3.5" />
         </div>
-        <span className="text-xs sm:text-sm font-semibold text-navy group-hover:text-navy transition-colors whitespace-nowrap">
+        <span className="text-xs font-semibold text-navy whitespace-nowrap">
           {category.name}
         </span>
         {count !== undefined && (
@@ -69,47 +69,19 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     );
   }
 
+  // BOOKORA Signature Category Card: Soft cream/beige surface, prominent dark navy icon, clean serif name
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.2 }}
-      className="h-full"
-    >
+    <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="h-full">
       <Link
         to={`/categories/${category.slug || category._id}`}
-        className="group relative flex flex-col justify-between h-full p-5 rounded-2xl bg-surface border border-borderMuted hover:border-navy/20 shadow-soft hover:shadow-elevated transition-all duration-300 overflow-hidden"
+        className="group flex flex-col items-center justify-center text-center p-3.5 sm:p-4 rounded-2xl bg-[#FFF9F2] hover:bg-[#FFF3E3] border border-amber-100/80 hover:border-golden/40 shadow-xs hover:shadow-soft transition-all duration-300 h-full"
       >
-        {/* If category has an image, render subtle thumbnail backdrop */}
-        {category.image && (
-          <div className="absolute inset-0 z-0 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
-            <img
-              src={category.image}
-              alt={category.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
-          </div>
-        )}
-
-        <div className="relative z-10">
-          {/* Icon tile */}
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-navy to-navy-light text-golden flex items-center justify-center mb-4 shadow-soft group-hover:scale-105 group-hover:rotate-3 transition-transform duration-300">
-            <IconComponent className="w-6 h-6" />
-          </div>
-
-          <h3 className="font-serif font-bold text-navy text-lg group-hover:text-golden transition-colors line-clamp-1 mb-1.5">
-            {category.name}
-          </h3>
-
-          <p className="text-xs text-textSecondary line-clamp-2 leading-relaxed">
-            {category.description || 'Explore curated literary masterpieces and bestsellers.'}
-          </p>
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white border border-amber-200/50 text-navy group-hover:text-golden group-hover:border-golden/50 flex items-center justify-center mb-2.5 shadow-xs group-hover:scale-105 transition-all">
+          <IconComponent className="w-6 h-6 transition-colors" />
         </div>
-
-        <div className="relative z-10 pt-4 mt-auto flex items-center justify-between text-xs font-bold text-navy group-hover:text-golden border-t border-borderMuted/60 transition-colors">
-          <span>Explore Genre</span>
-          <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-        </div>
+        <span className="font-serif font-bold text-xs sm:text-sm text-navy group-hover:text-golden-dark transition-colors line-clamp-1">
+          {category.name}
+        </span>
       </Link>
     </motion.div>
   );

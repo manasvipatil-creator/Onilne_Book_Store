@@ -5,7 +5,7 @@ interface BookCoverProps {
   src?: string;
   alt: string;
   className?: string;
-  aspectRatio?: string; // defaults to aspect-[3/4]
+  aspectRatio?: string; // defaults to standard 2:3 book cover ratio: aspect-[2/3]
   sizes?: string;
   loading?: 'lazy' | 'eager';
 }
@@ -14,13 +14,13 @@ export const BookCover: React.FC<BookCoverProps> = ({
   src,
   alt,
   className = '',
-  aspectRatio = 'aspect-[3/4]',
+  aspectRatio = 'aspect-[2/3]',
   loading = 'lazy',
 }) => {
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // If no source or failed to load, show fallback placeholder
+  // If no source or failed to load, show premium book cover placeholder
   if (!src || hasError) {
     return (
       <div
@@ -40,19 +40,22 @@ export const BookCover: React.FC<BookCoverProps> = ({
   }
 
   return (
-    <div className={`relative w-full ${aspectRatio} rounded-xl overflow-hidden bg-slate-100 ${className}`}>
+    <div
+      className={`relative w-full ${aspectRatio} rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center p-1 sm:p-1.5 ${className}`}
+    >
       {/* Shimmer / Skeleton while loading */}
       {!isLoaded && (
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse rounded-xl" />
       )}
 
+      {/* Real HD Book Cover Image with object-contain to prevent cropping and subtle realistic book drop-shadow */}
       <img
         src={src}
         alt={alt}
         loading={loading}
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
-        className={`w-full h-full object-cover transition-transform duration-300 ${
+        className={`w-full h-full object-contain rounded-lg drop-shadow-md transition-all duration-300 group-hover:drop-shadow-xl group-hover:scale-[1.03] ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
       />

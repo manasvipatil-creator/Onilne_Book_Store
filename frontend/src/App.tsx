@@ -13,6 +13,7 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderSuccessPage } from './pages/OrderSuccessPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { WishlistPage } from './pages/WishlistPage';
 
 import { CustomerOrdersPage } from './pages/customer/CustomerOrdersPage';
 import { CustomerEbooksPage } from './pages/customer/CustomerEbooksPage';
@@ -40,6 +41,7 @@ export const App: React.FC = () => {
         <Route path="/category/:slug" element={<CategoryBooksPage />} />
         <Route path="/books/:slug" element={<BookDetailsPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
         <Route
           path="/checkout"
           element={
@@ -70,6 +72,7 @@ export const App: React.FC = () => {
         >
           <Route index element={<CustomerOrdersPage />} />
           <Route path="orders" element={<CustomerOrdersPage />} />
+          <Route path="wishlist" element={<WishlistPage />} />
           <Route path="ebooks" element={<CustomerEbooksPage />} />
           <Route path="addresses" element={<CustomerAddressesPage />} />
           <Route path="profile" element={<CustomerProfilePage />} />
